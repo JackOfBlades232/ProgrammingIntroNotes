@@ -8,3 +8,7 @@ http://www.stolyarov.info/books/pdf/progintro_dmkv1.pdf -- volume 1 (intro, pasc
 http://www.stolyarov.info/books/pdf/progintro_dmkv2.pdf -- volume 2 (C, operating systems and nets)
 http://www.stolyarov.info/books/pdf/progintro_dmkv3.pdf -- volume 3 (C++ for OOP and other languages and paradigms)
 http://www.stolyarov.info/books/pdf/progintro_taskbook.pdf -- problem book
+
+## Disclaimer
+All the books and some of the solutions are in Russian, and unless someone someday undertakes the challenge of translating the books,
+unfortunately it will stay this way.
