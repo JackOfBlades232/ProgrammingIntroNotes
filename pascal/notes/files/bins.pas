@@ -10,7 +10,7 @@ begin
 end;
 
 const
-	filename = 'numbin.txt';
+	filename = 'output_numbin.bin';
 	start = 1000;
 	step = 1001;
 	count = 100;

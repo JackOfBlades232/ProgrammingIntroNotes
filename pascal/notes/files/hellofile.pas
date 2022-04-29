@@ -1,6 +1,6 @@
 program HelloFile; { helofile.pas }
 const
-	filename = 'hello.txt';
+	filename = 'output_hello.txt';
 	message = 'Hello, word!';
 var
 	f: text;
