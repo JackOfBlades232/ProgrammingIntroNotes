@@ -1,2 +1,8 @@
+*
+!*.*
+
+*.txt
+!solutions.txt
+
 *.o
 *.so
