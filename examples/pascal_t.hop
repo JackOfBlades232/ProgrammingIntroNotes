@@ -1,0 +1,53 @@
+#!/usr/local/bin/hopeless -f
+
+dec NextLineRest : list(num) -> list(num);
+--- NextLineRest([k]) <= [k];
+--- NextLineRest(a::b::ls) <= (a+b) :: NextLineRest(b::ls);
+
+dec NextLine : list(num) -> list(num);
+--- NextLine(ls) <= 1::NextLineRest(ls);
+
+dec PascalsTriangleBuild : list(num) -> list(list(num));
+--- PascalsTriangleBuild(ls) <= ls::PascalsTriangleBuild(NextLine(ls));
+
+dec PascalsTriangle : list(list(num));
+--- PascalsTriangle <= PascalsTriangleBuild([1]);
+
+dec FirstN : list alpha # num -> list alpha;
+--- FirstN (x :: y, n) <= if n = 0 then nil else x :: FirstN (y, n - 1);
+
+dec Nth : list alpha # num -> alpha;
+--- Nth (x :: ls, n) <= if n = 0 then x else Nth (ls, n - 1);
+
+dec Cnk : num # num -> num;
+--- Cnk(n, k) <= Nth(Nth(PascalsTriangle, n), k);
+
+! -------------------------------------------------------------------------
+
+
+dec NumList2Str : list(num) -> list(char);
+--- NumList2Str([]) <= [];
+--- NumList2Str(n :: rest) <= num2str n <> " " <> NumList2Str(rest);
+
+! dec LineByLine : list(char) # list(list(num)) -> list(char);
+! --- LineByLine([], _) <= [];
+! --- LineByLine(ch :: inp, h :: t) <=
+!         if ch = '\n' then
+!                 NumList2Str h <> LineByLine(inp, t)
+!         else
+!                 LineByLine(inp, h :: t);
+
+dec LineByLine : list(char) # list(list(num)) -> list(char);
+--- LineByLine([], _) <= [];
+--- LineByLine('\n' :: inp, h :: t) <=
+        NumList2Str h <> LineByLine(inp, t);
+--- LineByLine(_ :: inp, h :: t) <=
+        LineByLine(inp, h :: t);
+
+dec main : list(list(char)) # list(char) -> list(char);
+--- main([], inp)     <= LineByLine("\n" <> inp, PascalsTriangle);
+--- main(n::[], _)    <= NumList2Str(Nth(PascalsTriangle, str2num n));
+--- main(n::k::[], _) <= num2str(Cnk(str2num n, str2num k));
+--- main(lst, _)      <= "Too many arguments, sorry";
+
+write main(argv, input) <> "\n";

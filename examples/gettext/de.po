@@ -1,0 +1,30 @@
+# German translation for the HelloBye program
+# No copyright is claimed!
+# Andrey V. Stolyarov, 2016.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: HelloBye 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-03-21 19:02+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Andrey V. Solyarov\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=KOI8-R\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: hellobye.c:17
+#, c-format
+msgid "Hello, world!\n"
+msgstr "Hallo Welt!\n"
+
+#: hellobye.c:18
+#, c-format
+msgid "We are speaking\n"
+msgstr ""
+
+#: hellobye.c:19
+#, c-format
+msgid "Good bye, world!\n"
+msgstr "Auf Wiedersehen Welt!\n"

@@ -1,0 +1,30 @@
+! dec BreakStringDo : list(char) -> list(list(char));
+! --- BreakStringDo([]) <= [[]];
+! --- BreakStringDo(' ' :: Rest) <=
+!     let Word :: List == BreakStringDo(Rest) in
+!         if Word = [] then [] :: List else [] :: Word :: List;
+! --- BreakStringDo(c :: Rest) <=
+!     let Word :: List == BreakStringDo(Rest) in (c :: Word) :: List;
+!
+! dec BreakString : list(char) -> list(list(char));
+! --- BreakString(str) <=
+!     let Word :: Rest == BreakStringDo(str) in
+!         if Word = [] then Rest else Word :: Rest;
+
+dec DropFirstEmpty : list(list(char)) -> list(list(char));
+--- DropFirstEmpty([] :: T) <= T;
+--- DropFirstEmpty(H :: T) <= H :: T;
+
+dec CharToFirstWord : char # list(list(char)) -> list(list(char));
+--- CharToFirstWord(c, W :: L) <= (c :: W) :: L;
+
+dec BreakStringDo : list(char) -> list(list(char));
+--- BreakStringDo([]) <= [[]];
+--- BreakStringDo(' ' :: Rest) <=
+    [] :: DropFirstEmpty(BreakStringDo(Rest));
+--- BreakStringDo(c :: Rest) <=
+    CharToFirstWord(c, BreakStringDo(Rest));
+
+dec BreakString : list(char) -> list(list(char));
+--- BreakString(str) <=
+    DropFirstEmpty(BreakStringDo(str));

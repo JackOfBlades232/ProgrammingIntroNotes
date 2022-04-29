@@ -1,0 +1,70 @@
+2.01
+a) 5 integer
+b) 32 integer
+c) 6 integer
+d) 3.0 real
+e) 2.5 real
+f) 3 integer
+g) 0 integer
+h) 5 integer
+i) 2 integer
+j) 4 integer
+k) 5.0 real
+l) true boolean
+m) true boolean
+n) false boolean
+
+2.02
+a = 5, b = 5
+
+2.03
+45
+
+2.04 
+990
+
+2.05
+a) 10 строк "Hello"
+b) 19 строк "Good bye"
+c) 12 строк "abrakadabra"
+d) 15 строк "foobar"
+e) 10 строк "Johnny be good!"
+f) Ничего
+
+2.06
+a) 11 строк "Hello"
+b) 20 строк "Good bye"
+c) "abrakadabra"
+d) "abcdefg"
+
+2.07
+Только в пунктах а, и i считает кол-во написанных строк
+
+2.09
+a) 66
+b) 111
+c) 45
+d) -1
+e) 12
+f) -177
+g) 128
+h) 28
+i) 15
+j) 30
+k) 5
+l) -8
+
+2.10
+x = $abcdef57
+y = $12346891
+x shr 8 = $abcdef
+y shl 8 = $34689100
+(x shr 8) and $ffff0000 = $ab0000
+(y shl 8) and $ffff = $9100
+... or ... = $ab9100
+y and $ff0000 = $340000
+... shr 16 = $34
+y and $ff = $91
+... shl 8 = $9100
+... or ... = $9134
+Answer: $ab9100, $9134

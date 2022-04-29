@@ -1,0 +1,30 @@
+dec Nth : list(alpha) # num -> alpha;
+--- Nth(x::ls, n) <= if n = 1 then x else Nth(ls, n-1);
+
+dec FirstN : list(alpha) # num -> list(alpha);
+--- FirstN(x::y, n) <= if n = 0 then nil else x::FirstN(y, n-1);
+
+dec map : (alpha -> beta) # list(alpha) -> list(beta);
+--- map(_, []) <= [];
+--- map(f, x::ls) <= f(x) :: map(f, ls);
+
+dec Reduce : (alpha # beta -> beta) # list(alpha) # beta -> beta;
+--- Reduce(_, [], init) <= init;
+--- Reduce(f, h :: t, init) <= f(h, Reduce(f, t, init));
+
+dec Member : alpha # list(alpha) -> truval;
+--- Member(x, ls) <=
+        Reduce(\(el, ok) => if ok then true else x = el,
+                ls, false);
+
+dec MakeAdder : num -> num -> num;
+--- MakeAdder x <= lambda y => x + y;
+
+dec DropElems : num # list(alpha) -> list(alpha);
+--- DropElems(_, []) <= [];
+--- DropElems(0, ls) <= ls;
+--- DropElems(k, _ :: tail) <= DropElems(k-1, tail);
+
+
+dec Curry : (alpha # beta -> gamma) -> alpha -> beta -> gamma;
+--- Curry f <= \x => \y => f(x, y);

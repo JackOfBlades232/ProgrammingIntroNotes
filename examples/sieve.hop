@@ -1,0 +1,17 @@
+dec Nth : list alpha # num -> alpha;
+--- Nth (x :: ls, n) <= if n = 1 then x else Nth (ls, n - 1);
+
+dec FirstN : list alpha # num -> list alpha;
+--- FirstN (x :: y, n) <= if n = 0 then nil else x :: FirstN (y, n - 1);
+
+dec From : num -> list num;
+--- From x <= x :: From (x + 1);
+
+dec Filter : num # list num -> list num;
+--- Filter (n, m :: ls) <=
+        if m mod n = 0
+                then Filter (n, ls)
+                else m :: Filter (n, ls);
+
+dec Sieve : list num -> list num;
+--- Sieve (n :: ls) <= n :: Sieve (Filter (n, ls));

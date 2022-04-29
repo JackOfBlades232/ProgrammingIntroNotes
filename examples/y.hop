@@ -1,0 +1,50 @@
+dec YComb : (alpha -> alpha) -> alpha;
+! --- YComb f <= let lxfxx == lambda x => f(x x) in lxfxx lxfxx;
+! --- YComb <= \ f => (\ x => x x) (\x => f (x x));
+--- YComb f <= f(YComb f);
+
+dec fact : num -> num;
+--- fact x <=
+        let almost_fact ==
+                lambda fn => lambda t =>
+                        if t = 0 then 1 else t * (fn (t-1))
+        in
+                (YComb almost_fact) x;
+
+dec id : alpha -> alpha;
+--- id x <= x;
+
+! dec fact2 : num -> num;
+! --- fact2 x <=
+!         let
+!                 seed == lambda(fn, t) =>
+!                         (fn, if t = 0 then 1 else t * fn(fn, t-1))
+!         in
+!                 letrec (f, res) == (YComb seed)(f, x) in res;
+
+dec Memb : (alpha # list(alpha)) -> truval;
+--- Memb(m, ls) <=
+        let seed ==
+                lambda fn =>
+                        lambda (_, []) => false
+                             | (x, y::rst) =>
+                                if x = y then true else fn(x, rst)
+        in
+                YComb seed (m, ls);
+
+
+dec DropElems : num # list(alpha) -> list(alpha);
+--- DropElems(count, lst) <=
+        let almost ==
+                \ fn => (\ (_,[])=>[] | (0,ls)=>ls | (k,_::t)=>fn(k-1,t))
+        in
+                (YComb almost)(count, lst);
+
+
+dec Fix : (alpha -> alpha) -> alpha;
+--- Fix f <= f(Fix f);
+
+dec Sumlist : list(num) -> num;
+--- Sumlist [] <= 0;
+--- Sumlist (x :: r) <= x + Sumlist r;
+
