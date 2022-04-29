@@ -6,7 +6,7 @@ This is my main instrument for learning the fundamentals of programming, and I t
 ## Links to the books
 http://www.stolyarov.info/books/pdf/progintro_dmkv1.pdf -- volume 1 (intro, pascal and assembler)
 http://www.stolyarov.info/books/pdf/progintro_dmkv2.pdf -- volume 2 (C, operating systems and nets)
-http://www.stolyarov.info/books/pdf/progintro_dmkv3.pdf -- volume 3 (C++ for OOP and other languages and paradigms)
+http://www.stolyarov.info/books/pdf/progintro_dmkv3.pdf -- volume 3 (C++ and other exotic languages)
 http://www.stolyarov.info/books/pdf/progintro_taskbook.pdf -- problem book
 
 ## Disclaimer
