@@ -1,4 +1,4 @@
-program Problem2_28; { 2_28.pas }
+program Problem2_29; { 2_29.pas }
 uses crt;
 const
     CentralSquareSize = 10;
