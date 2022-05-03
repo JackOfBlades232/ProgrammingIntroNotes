@@ -183,7 +183,7 @@ var
     InputDir: direction;
     ticker, c: integer;
 begin
-	fpSystem('tput civis');
+    fpSystem('tput civis');
 StartGame:
     randomize;
     clrscr;
@@ -232,5 +232,5 @@ StartGame:
         ticker := ticker + 1
     end;
     clrscr;
-	fpSystem('tput cnorm');
+    fpSystem('tput cnorm');
 end.
