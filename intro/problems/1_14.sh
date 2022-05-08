@@ -1,8 +1,5 @@
 #!/bin/sh
 # 1_14.sh
-
-# UNFINISHED
-
 mkdir $1
 if [ $? != 0 ]; then
     exit $?
