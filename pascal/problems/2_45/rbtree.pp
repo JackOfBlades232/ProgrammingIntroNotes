@@ -13,7 +13,7 @@ type
 
 function IsInTree(p: TreeNodePtr; key: string): boolean;
 procedure GetElement(p: TreeNodePtr; key: string;
-    var out: pointer; var ok: boolean);
+    var out: TreeNodePtr; var ok: boolean);
 procedure AddToTree(var p: TreeNodePtr; key: string; data: pointer);
 
 implementation
@@ -59,14 +59,14 @@ begin
 end;
 
 procedure GetElement(p: TreeNodePtr; key: string;
-    var out: pointer; var ok: boolean);
+    var out: TreeNodePtr; var ok: boolean);
 var
     position, parent: TreeNodePos;
 begin
     SearchTree(p, key, position, parent);
     ok := position^ <> nil;
     if ok then
-        out := position^^.data
+        out := position^
 end;
 
 procedure AddToTreeSimple(var p, NewPos: TreeNodePtr; key: string;
@@ -130,21 +130,29 @@ begin
         uncle := nil
 end;
 
-procedure RotateLeft(var p: TreeNodePtr);
+procedure RotateLeft(var p, root: TreeNodePtr);
 var
     pivot: TreeNodePtr;
 begin
     if (p = nil) or (p^.right = nil) then
         exit;
+    {$IFDEF DEBUG}
+    writeln('DEBUG: rotate left');
+    {$ENDIF}
     pivot := p^.right;
     pivot^.parent := p^.parent;
     if p^.parent <> nil then
     begin
+        {$IFDEF DEBUG}
+        writeln('DEBUG: rotate not to root');
+        {$ENDIF}
         if (p = p^.parent^.left) then
             pivot := p^.parent^.left
         else
             pivot := p^.parent^.right
-    end;
+    end
+    else
+        root := pivot;
     p^.right := pivot^.left;
     if pivot^.left <> nil then
         pivot^.left^.parent := p;
@@ -152,21 +160,29 @@ begin
     p^.parent := pivot
 end;
 
-procedure RotateRight(var p: TreeNodePtr);
+procedure RotateRight(var p, root: TreeNodePtr);
 var
     pivot: TreeNodePtr;
 begin
     if (p = nil) or (p^.left = nil) then
         exit;
+    {$IFDEF DEBUG}
+    writeln('DEBUG: rotate right');
+    {$ENDIF}
     pivot := p^.left;
     pivot^.parent := p^.parent;
     if p^.parent <> nil then
     begin
+        {$IFDEF DEBUG}
+        writeln('DEBUG: left rotate not to root');
+        {$ENDIF}
         if (p = p^.parent^.left) then
             pivot := p^.parent^.left
         else
             pivot := p^.parent^.right
-    end;
+    end
+    else
+        root := pivot;
     p^.left := pivot^.right;
     if pivot^.right <> nil then
         pivot^.right^.parent := p;
@@ -174,44 +190,56 @@ begin
     p^.parent := pivot
 end;
 
-procedure InsertCase4(var p: TreeNodePtr);
+procedure InsertCase4(var p, root: TreeNodePtr);
 var
     g: TreeNodePtr;
-begin:::
+begin
+    {$IFDEF DEBUG}
+    writeln('DEBUG: insert case 4');
+    {$ENDIF}
     g := grandparent(p);
     if p^.parent = g^.left then
-        RotateRight(g)
+        RotateRight(g, root)
     else if p^.parent = g^.right then
-        RotateLeft(g);
+        RotateLeft(g, root);
     p^.parent^.color := black;
     g^.color := red
 end;
 
-procedure InsertCase3(var p: TreeNodePtr);
+procedure InsertCase3(var p, root: TreeNodePtr);
 var
     g: TreeNodePtr;
 begin
     g := grandparent(p);
     if (p^.parent = g^.left) and (p = p^.parent^.right) then
     begin
-        RotateLeft(p^.parent);
+        {$IFDEF DEBUG}
+        writeln('DEBUG: insert case 3');
+        {$ENDIF}
+        RotateLeft(p^.parent, root);
         p := p^.left
     end
     else if (p^.parent = g^.right) and (p = p^.parent^.left) then
     begin
-        RotateRight(p^.parent);
+        {$IFDEF DEBUG}
+        writeln('DEBUG: insert case 3');
+        {$ENDIF}
+        RotateRight(p^.parent, root);
         p := p^.right
     end;
-    InsertCase4(p)
+    InsertCase4(p, root)
 end;
 
-procedure InsertCase2(var p: TreeNodePtr);
+procedure InsertCase2(var p, root: TreeNodePtr);
 var
     g, u: TreeNodePtr;
 begin
     u := uncle(p);
     if (u <> nil) and (u^.color = red) then
     begin
+        {$IFDEF DEBUG}
+        writeln('DEBUG: insert case 2');
+        {$ENDIF}
         p^.parent^.color := black;
         u^.color := black;
         g := grandparent(p);
@@ -219,18 +247,27 @@ begin
         if p^.parent = nil then
             p^.color := black
         else if p^.parent^.color = red then
-            InsertCase2(p)
+            InsertCase2(p, root)
     end
     else
-        InsertCase3(p)
+        InsertCase3(p, root)
 end;
 
-procedure InsertCase1(var p: TreeNodePtr);
+procedure InsertCase1(var p, root: TreeNodePtr);
 begin
     if p^.parent = nil then
+    begin
+        {$IFDEF DEBUG}
+        writeln('DEBUG: insert case 1');
+        {$ENDIF}
         p^.color := black
+    end
     else if p^.parent^.color = red then
-        InsertCase2(p)
+        InsertCase2(p, root)
+    {$IFDEF DEBUG}
+    else
+        writeln('DEBUG: Insert case 1.5')
+    {$ENDIF}
 end;
 
 procedure AddToTree(var p: TreeNodePtr; key: string; data: pointer);
@@ -238,7 +275,7 @@ var
     NewPos: TreeNodePtr;
 begin
     AddToTreeSimple(p, NewPos, key, data);
-    { InsertCase1(NewPos) }
+    InsertCase1(NewPos, p)
 end;
 
 end.
