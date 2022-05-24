@@ -130,14 +130,21 @@ begin
         uncle := nil
 end;
 
-procedure RotateLeft(var p, root: TreeNodePtr);
+procedure RotateLeft(p: TreeNodePtr; var root: TreeNodePtr);
 var
     pivot: TreeNodePtr;
 begin
     if (p = nil) or (p^.right = nil) then
         exit;
     {$IFDEF DEBUG}
-    writeln('DEBUG: rotate left');
+    writeln('DEBUG: rotate right');
+    writeln('   key: ', p^.key);
+    if p^.left <> nil then
+        writeln('       left key: ', p^.left^.key);
+    if p^.right <> nil then
+        writeln('       right key: ', p^.right^.key);
+    if p^.parent <> nil then
+        writeln('       parent key: ', p^.parent^.key);
     {$ENDIF}
     pivot := p^.right;
     pivot^.parent := p^.parent;
@@ -147,9 +154,9 @@ begin
         writeln('DEBUG: rotate not to root');
         {$ENDIF}
         if (p = p^.parent^.left) then
-            pivot := p^.parent^.left
+            p^.parent^.left := pivot 
         else
-            pivot := p^.parent^.right
+            p^.parent^.right := pivot
     end
     else
         root := pivot;
@@ -157,10 +164,19 @@ begin
     if pivot^.left <> nil then
         pivot^.left^.parent := p;
     pivot^.left := p;
-    p^.parent := pivot
+    p^.parent := pivot;
+    {$IFDEF DEBUG}
+    writeln('   key: ', p^.key);
+    if p^.left <> nil then
+        writeln('       left key: ', p^.left^.key);
+    if p^.right <> nil then
+        writeln('       right key: ', p^.right^.key);
+    if p^.parent <> nil then
+        writeln('       parent key: ', p^.parent^.key);
+    {$ENDIF}
 end;
 
-procedure RotateRight(var p, root: TreeNodePtr);
+procedure RotateRight(p: TreeNodePtr; var root: TreeNodePtr);
 var
     pivot: TreeNodePtr;
 begin
@@ -168,18 +184,25 @@ begin
         exit;
     {$IFDEF DEBUG}
     writeln('DEBUG: rotate right');
+    writeln('   key: ', p^.key);
+    if p^.left <> nil then
+        writeln('       left key: ', p^.left^.key);
+    if p^.right <> nil then
+        writeln('       right key: ', p^.right^.key);
+    if p^.parent <> nil then
+        writeln('       parent key: ', p^.parent^.key);
     {$ENDIF}
     pivot := p^.left;
     pivot^.parent := p^.parent;
     if p^.parent <> nil then
     begin
         {$IFDEF DEBUG}
-        writeln('DEBUG: left rotate not to root');
+        writeln('DEBUG: rotate not to root');
         {$ENDIF}
         if (p = p^.parent^.left) then
-            pivot := p^.parent^.left
+            p^.parent^.left := pivot 
         else
-            pivot := p^.parent^.right
+            p^.parent^.right := pivot
     end
     else
         root := pivot;
@@ -187,10 +210,19 @@ begin
     if pivot^.right <> nil then
         pivot^.right^.parent := p;
     pivot^.right := p;
-    p^.parent := pivot
+    p^.parent := pivot;
+    {$IFDEF DEBUG}
+    writeln('   key: ', p^.key);
+    if p^.left <> nil then
+        writeln('       left key: ', p^.left^.key);
+    if p^.right <> nil then
+        writeln('       right key: ', p^.right^.key);
+    if p^.parent <> nil then
+        writeln('       parent key: ', p^.parent^.key);
+    {$ENDIF}
 end;
 
-procedure InsertCase4(var p, root: TreeNodePtr);
+procedure InsertCase4(p: TreeNodePtr; var root: TreeNodePtr);
 var
     g: TreeNodePtr;
 begin
@@ -198,6 +230,26 @@ begin
     writeln('DEBUG: insert case 4');
     {$ENDIF}
     g := grandparent(p);
+    {$IFDEF DEBUG}
+    if p^.parent <> nil then
+        writeln('    parent key: ', p^.parent^.key)
+    else
+        writeln('    parent is nil');
+    if g <> nil then
+    begin
+        writeln('    grandparent key: ', g^.key);
+        if g^.left <> nil then
+            writeln('       grandparent left key: ', g^.left^.key)
+        else
+            writeln('       grandparent left is nil');
+        if g^.right <> nil then
+            writeln('       grandparent right key: ', g^.right^.key)
+        else
+            writeln('       grandparent right is nil')
+    end
+    else
+        writeln('    grandparent is nil');
+    {$ENDIF}
     if p^.parent = g^.left then
         RotateRight(g, root)
     else if p^.parent = g^.right then
@@ -206,7 +258,7 @@ begin
     g^.color := red
 end;
 
-procedure InsertCase3(var p, root: TreeNodePtr);
+procedure InsertCase3(p: TreeNodePtr; var root: TreeNodePtr);
 var
     g: TreeNodePtr;
 begin
@@ -230,7 +282,7 @@ begin
     InsertCase4(p, root)
 end;
 
-procedure InsertCase2(var p, root: TreeNodePtr);
+procedure InsertCase2(p: TreeNodePtr; var root: TreeNodePtr);
 var
     g, u: TreeNodePtr;
 begin
@@ -244,16 +296,16 @@ begin
         u^.color := black;
         g := grandparent(p);
         g^.color := red;
-        if p^.parent = nil then
-            p^.color := black
-        else if p^.parent^.color = red then
-            InsertCase2(p, root)
+        if g^.parent = nil then
+            g^.color := black
+        else if g^.parent^.color = red then
+            InsertCase2(g, root)
     end
     else
         InsertCase3(p, root)
 end;
 
-procedure InsertCase1(var p, root: TreeNodePtr);
+procedure InsertCase1(p: TreeNodePtr; var root: TreeNodePtr);
 begin
     if p^.parent = nil then
     begin
@@ -272,10 +324,15 @@ end;
 
 procedure AddToTree(var p: TreeNodePtr; key: string; data: pointer);
 var
-    NewPos: TreeNodePtr;
+    NewNode: TreeNodePtr;
 begin
-    AddToTreeSimple(p, NewPos, key, data);
-    InsertCase1(NewPos, p)
+    AddToTreeSimple(p, NewNode, key, data);
+    InsertCase1(NewNode, p);
+    {$IFDEF DEBUG}
+    writeln('DEBUG: new node color: ', NewNode^.color);
+    if NewNode^.parent <> nil then
+        writeln('DEBUG: new node parent color: ', NewNode^.parent^.color)
+    {$ENDIF}
 end;
 
 end.

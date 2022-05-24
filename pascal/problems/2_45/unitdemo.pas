@@ -1,10 +1,16 @@
 program UnitDemo; { unitdemo.pas }
 uses rbtree;
 
+{$IFDEF TEST}
 procedure DepthSearchNextStep(var cur, prev: TreeNodePtr; var finished: boolean);
 begin
     if cur = nil then
+    begin
+        {$IFDEF DEBUG}
+        writeln('DEBUG: invalid node for depth search');
+        {$ENDIF}
         exit
+    end
     else if prev = cur^.parent then
     begin
         prev := cur;
@@ -75,6 +81,20 @@ begin
     begin
         if not NodeSatisfiesProperty2(cur) then
         begin
+            {$IFDEF DEBUG}
+            writeln('DEBUG: property 2 culprit node key: ', 
+                cur^.key, ', color: ', cur^.color);
+            if cur^.right = nil then
+                writeln('    right node -- nil')
+            else
+                writeln('    right node key: ', cur^.right^.key,
+                    ', color: ', cur^.right^.color);
+            if cur^.left = nil then
+                writeln('    left node -- nil')
+            else
+                writeln('    left node key: ', cur^.left^.key,
+                    ', color: ', cur^.left^.color);
+            {$ENDIF}
             SatisfiesProperty2 := false;
             exit
         end;
@@ -84,12 +104,72 @@ Success:
     SatisfiesProperty2 := true
 end;
 
-{ function SatisfiesProperty3(root: TreeNodePtr): boolean; }
+function SatisfiesProperty3(root: TreeNodePtr): boolean;
+label
+    Success;
+var
+    cur, prev: TreeNodePtr;
+    finished: boolean;
+    BlackCounter, benchmark: integer;
+begin
+    if root = nil then
+        goto Success;
+    cur := root;
+    prev := nil;
+    finished := false;
+    BlackCounter := 1;
+    benchmark := -1;
+    while not finished do
+    begin
+        DepthSearchNextStep(cur, prev, finished);
+        if (cur^.color = black) and (prev = cur^.parent) then
+            BlackCounter := BlackCounter + 1
+        else if (prev^.color = black) and (prev <> cur^.parent) then
+            BlackCounter := BlackCounter - 1;
+        if (cur^.left = nil) or (cur^.right = nil) then
+            if benchmark = -1 then
+                benchmark := BlackCounter
+            else if BlackCounter <> benchmark then
+            begin
+                SatisfiesProperty3 := true;
+                exit
+            end
+    end;
+Success:
+    SatisfiesProperty3 := true
+end;
+    
 
 function TreeIsValid(root: TreeNodePtr): boolean;
 begin
-    TreeIsValid := SatisfiesProperty1(root) and SatisfiesProperty2(root) { and
-        SatisfiesProperty3(root) }
+    TreeIsValid := SatisfiesProperty1(root) and
+        SatisfiesProperty2(root) and SatisfiesProperty3(root)
+end;
+
+{$IFDEF DEBUG}
+procedure CheckPropertiesSeparately(root: TreeNodePtr);
+begin
+    if SatisfiesProperty1(root) then
+        writeln('DEBUG: Property 1 satisfied')
+    else
+        writeln('DEBUG: Property 1 NOT satisfied!');
+    if SatisfiesProperty2(root) then
+        writeln('DEBUG: Property 2 satisfied')
+    else
+        writeln('DEBUG: Property 2 NOT satisfied!');
+    if SatisfiesProperty3(root) then
+        writeln('DEBUG: Property 3 satisfied')
+    else
+        writeln('DEBUG: Property 3 NOT satisfied!')
+end;
+{$ENDIF}
+{$ENDIF}
+
+procedure SeekNotSpace(var c: char);
+begin
+    read(c);
+    while (c = ' ') or (c = #9) or (c = #10) or (c = #13) do
+        read(c)
 end;
  
 var
@@ -101,9 +181,10 @@ var
     n: longint;
     ok: boolean;
 begin
-    while not eof do
+    while not SeekEof do
     begin
-        readln(c, key);
+        SeekNotSpace(c);
+        readln(key);
         case c of
             '?': begin
                 if IsInTree(root, key) then
@@ -119,19 +200,39 @@ begin
                     writeln('Not in tree')
             end;
             '+': begin
+                {$IFNDEF TEST}
                 write('Input data: ');
+                {$ENDIF}
                 readln(n);
                 p := @n;
                 AddToTree(root, key, p);
+                {$IFDEF DEBUG}
+                writeln('DEBUG: root key: ', root^.key,
+                    ', color: ', root^.color);
+                if root^.left <> nil then
+                    writeln('   root left key: ', root^.left^.key)
+                else
+                    writeln('   root left is nil');
+                if root^.right <> nil then
+                    writeln('   root right key: ', root^.right^.key)
+                else
+                    writeln('   root right is nil');
+                {$ENDIF}
+                {$IFNDEF TEST}
                 writeln('Successfully added')
+                {$ENDIF}
             end;
-            {$IFDEF DEBUG}
+            {$IFDEF TEST}
             '!': begin
                 if TreeIsValid(root) then
-                    writeln('Red-black tree is valid')
+                    writeln('TEST PASSED: Red-black tree is valid')
                 else
-                    writeln('Invalid tree!')
+                    writeln('TEST FAILED: Invalid tree!')
             end;
+            {$IFDEF DEBUG}
+            '~':
+                CheckPropertiesSeparately(root);
+            {$ENDIF}
             {$ENDIF}
             else
                 writeln('Unknown command "', c , '"')
