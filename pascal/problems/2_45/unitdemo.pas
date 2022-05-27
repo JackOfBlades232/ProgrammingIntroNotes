@@ -206,18 +206,6 @@ begin
                 readln(n);
                 p := @n;
                 AddToTree(root, key, p);
-                {$IFDEF DEBUG}
-                writeln('DEBUG: root key: ', root^.key,
-                    ', color: ', root^.color);
-                if root^.left <> nil then
-                    writeln('   root left key: ', root^.left^.key)
-                else
-                    writeln('   root left is nil');
-                if root^.right <> nil then
-                    writeln('   root right key: ', root^.right^.key)
-                else
-                    writeln('   root right is nil');
-                {$ENDIF}
                 {$IFNDEF TEST}
                 writeln('Successfully added')
                 {$ENDIF}

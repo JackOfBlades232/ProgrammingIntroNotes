@@ -15,12 +15,41 @@ function IsInTree(p: TreeNodePtr; key: string): boolean;
 procedure GetElement(p: TreeNodePtr; key: string;
     var out: TreeNodePtr; var ok: boolean);
 procedure AddToTree(var p: TreeNodePtr; key: string; data: pointer);
+procedure RemoveFromTree(var p: TreeNodePtr; key: string;
+    var out: pointer; var code: integer);
+procedure ClearTree(var p: TreeNodePtr);
 
 implementation
 uses sysutils;
 
 type
     TreeNodePos = ^TreeNodePtr;
+
+{$IFDEF DEBUG}
+{ debuging print procedures }
+procedure LogNodeInfo(p: TreeNodePtr);
+begin
+    if p <> nil then
+        writeln('   key: ', p^.key)
+    else
+    begin
+        writeln('   is nil');
+        exit
+    end;
+    if p^.left <> nil then
+        writeln('       left key: ', p^.left^.key)
+    else
+        writeln('       left is nil');
+    if p^.right <> nil then
+        writeln('       right key: ', p^.right^.key)
+    else
+        writeln('       right is nil');
+    if p^.parent <> nil then
+        writeln('       parent key: ', p^.parent^.key)
+    else
+        writeln('       parent is nil')
+end;
+{$ENDIF}
 
 procedure SearchTree(var p: TreeNodePtr; key: string;
     var out, parent: TreeNodePos);
@@ -30,9 +59,8 @@ begin
     if (p = nil) or (key = p^.key) then
     begin
         {$IFDEF DEBUG}
-        write('DEBUG: Assigned address');
         if (p <> nil) then
-            write(', key exists');
+            write('DEBUG: search, key exists');
         writeln;
         {$ENDIF}
         out := @p;
@@ -89,16 +117,9 @@ begin
             out^^.parent := nil;
         out^^.color := red;
         {$IFDEF DEBUG}
-        write('DEBUG: key -- ', out^^.key);
-        if out^^.parent <> nil then
-        begin
-            write(', parent key -- ', out^^.parent^.key);
-            if out^^.parent^.right <> nil then
-                write(', parent right key -- ', out^^.parent^.right^.key);
-            if out^^.parent^.left <> nil then
-                write(', parent left key -- ', out^^.parent^.left^.key)
-        end;
-        writeln;
+        writeln('DEBUG: key -- ', out^^.key);
+        write('parent info: ');
+        LogNodeInfo(out^^.parent);
         {$ENDIF}
         if p = nil then
             p := out^
@@ -137,14 +158,8 @@ begin
     if (p = nil) or (p^.right = nil) then
         exit;
     {$IFDEF DEBUG}
-    writeln('DEBUG: rotate right');
-    writeln('   key: ', p^.key);
-    if p^.left <> nil then
-        writeln('       left key: ', p^.left^.key);
-    if p^.right <> nil then
-        writeln('       right key: ', p^.right^.key);
-    if p^.parent <> nil then
-        writeln('       parent key: ', p^.parent^.key);
+    writeln('DEBUG: rotate left');
+    LogNodeInfo(p);
     {$ENDIF}
     pivot := p^.right;
     pivot^.parent := p^.parent;
@@ -166,13 +181,7 @@ begin
     pivot^.left := p;
     p^.parent := pivot;
     {$IFDEF DEBUG}
-    writeln('   key: ', p^.key);
-    if p^.left <> nil then
-        writeln('       left key: ', p^.left^.key);
-    if p^.right <> nil then
-        writeln('       right key: ', p^.right^.key);
-    if p^.parent <> nil then
-        writeln('       parent key: ', p^.parent^.key);
+    LogNodeInfo(p);
     {$ENDIF}
 end;
 
@@ -184,13 +193,7 @@ begin
         exit;
     {$IFDEF DEBUG}
     writeln('DEBUG: rotate right');
-    writeln('   key: ', p^.key);
-    if p^.left <> nil then
-        writeln('       left key: ', p^.left^.key);
-    if p^.right <> nil then
-        writeln('       right key: ', p^.right^.key);
-    if p^.parent <> nil then
-        writeln('       parent key: ', p^.parent^.key);
+    LogNodeInfo(p);
     {$ENDIF}
     pivot := p^.left;
     pivot^.parent := p^.parent;
@@ -212,13 +215,7 @@ begin
     pivot^.right := p;
     p^.parent := pivot;
     {$IFDEF DEBUG}
-    writeln('   key: ', p^.key);
-    if p^.left <> nil then
-        writeln('       left key: ', p^.left^.key);
-    if p^.right <> nil then
-        writeln('       right key: ', p^.right^.key);
-    if p^.parent <> nil then
-        writeln('       parent key: ', p^.parent^.key);
+    LogNodeInfo(p);
     {$ENDIF}
 end;
 
@@ -235,20 +232,8 @@ begin
         writeln('    parent key: ', p^.parent^.key)
     else
         writeln('    parent is nil');
-    if g <> nil then
-    begin
-        writeln('    grandparent key: ', g^.key);
-        if g^.left <> nil then
-            writeln('       grandparent left key: ', g^.left^.key)
-        else
-            writeln('       grandparent left is nil');
-        if g^.right <> nil then
-            writeln('       grandparent right key: ', g^.right^.key)
-        else
-            writeln('       grandparent right is nil')
-    end
-    else
-        writeln('    grandparent is nil');
+    write('    grandparent');
+    LogNodeInfo(g);
     {$ENDIF}
     if p^.parent = g^.left then
         RotateRight(g, root)
@@ -331,7 +316,9 @@ begin
     {$IFDEF DEBUG}
     writeln('DEBUG: new node color: ', NewNode^.color);
     if NewNode^.parent <> nil then
-        writeln('DEBUG: new node parent color: ', NewNode^.parent^.color)
+        writeln('DEBUG: new node parent color: ', NewNode^.parent^.color);
+    writeln('DEBUG: root');
+    LogNodeInfo(p)
     {$ENDIF}
 end;
 
