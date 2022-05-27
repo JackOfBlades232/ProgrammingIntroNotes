@@ -57,7 +57,7 @@ begin
         halt(1)
     end;
     write(f, ' angle');
-    PrintCharSeq(f, ' ', RealStrLen - AngleNameLen + 1);
+    PrintCharSeq(f, ' ', RealStrLen - AngleNameLen);
     write(f, '| sin');
     PrintCharSeq(f, ' ', RealStrLen - TrigNameLen + 1);
     write(f, '| cos');
@@ -69,7 +69,7 @@ begin
     writeln(f, '|');
     while angle <= MaxAngle + Precision do
     begin
-        PrintCharSeq(f, '-', NumColumns * RealStrLen + ExcessSymbols);
+        PrintCharSeq(f, '-', NumColumns * RealStrLen + ExcessSymbols + 1);
         writeln(f);
         sine := sin(angle);
         cosine := cos(angle);
@@ -77,7 +77,7 @@ begin
             sine / cosine, ' | ', cosine / sine, ' |');
         angle := angle + step
     end;
-    PrintCharSeq(f, '-', NumColumns * RealStrLen + ExcessSymbols);
+    PrintCharSeq(f, '-', NumColumns * RealStrLen + ExcessSymbols + 1);
     writeln(f);
     close(f)
 end.
