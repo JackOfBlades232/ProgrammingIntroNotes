@@ -1,4 +1,4 @@
-unit rbtree; { rbtree.pas }
+unit rbtree; { rbtree.pp }
 interface
 
 type
@@ -15,9 +15,9 @@ function IsInTree(p: TreeNodePtr; key: string): boolean;
 procedure GetElement(p: TreeNodePtr; key: string;
     var out: TreeNodePtr; var ok: boolean);
 procedure AddToTree(var p: TreeNodePtr; key: string; data: pointer);
-procedure RemoveFromTree(var p: TreeNodePtr; key: string;
-    var out: pointer; var code: integer);
-procedure ClearTree(var p: TreeNodePtr);
+{ procedure RemoveFromTree(var p: TreeNodePtr; key: string;
+    var out: pointer; var ok: boolean);
+procedure ClearTree(var p: TreeNodePtr); }
 
 implementation
 uses sysutils;
@@ -60,8 +60,7 @@ begin
     begin
         {$IFDEF DEBUG}
         if (p <> nil) then
-            write('DEBUG: search, key exists');
-        writeln;
+            writeln('DEBUG: search, key exists');
         {$ENDIF}
         out := @p;
         if p <> nil then
@@ -98,7 +97,7 @@ begin
 end;
 
 procedure AddToTreeSimple(var p, NewPos: TreeNodePtr; key: string;
-    data: pointer);
+    data: pointer; var IsNew: boolean);
 var
     out, parent: TreeNodePos;
 begin
@@ -122,10 +121,14 @@ begin
         LogNodeInfo(out^^.parent);
         {$ENDIF}
         if p = nil then
-            p := out^
+            p := out^;
+        IsNew := true
     end
     else
+    begin
         out^^.data := data;
+        IsNew := false
+    end;
     NewPos := out^
 end;
 
@@ -310,9 +313,11 @@ end;
 procedure AddToTree(var p: TreeNodePtr; key: string; data: pointer);
 var
     NewNode: TreeNodePtr;
+    IsNew: boolean;
 begin
-    AddToTreeSimple(p, NewNode, key, data);
-    InsertCase1(NewNode, p);
+    AddToTreeSimple(p, NewNode, key, data, IsNew);
+    if IsNew then
+        InsertCase1(NewNode, p);
     {$IFDEF DEBUG}
     writeln('DEBUG: new node color: ', NewNode^.color);
     if NewNode^.parent <> nil then

@@ -131,7 +131,7 @@ begin
                 benchmark := BlackCounter
             else if BlackCounter <> benchmark then
             begin
-                SatisfiesProperty3 := true;
+                SatisfiesProperty3 := false;
                 exit
             end
     end;

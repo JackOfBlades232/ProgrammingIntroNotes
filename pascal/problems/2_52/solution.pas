@@ -7,7 +7,19 @@ type
         next: FiledataPtr;
     end;
 
-procedure TryOpenFile(var f: text; fp: FiledataPtr);
+procedure DisposeOfList(var init: FiledataPtr);
+var
+    tmp: FiledataPtr;
+begin
+    while init <> nil do
+    begin
+        tmp := init;
+        init := init^.next;
+        dispose(tmp)
+    end
+end;
+
+procedure TryOpenFile(var f: text; var fp, init: FiledataPtr);
 begin
     {$I-}
     assign(f, fp^.name);
@@ -15,8 +27,7 @@ begin
     if IOResult <> 0 then
     begin
         writeln(ErrOutput, 'Couldn''t open file!');
-        dispose(fp);
-        fp := nil;
+        DisposeOfList(init);
         halt(1)
     end
 end;
@@ -30,7 +41,7 @@ var
 begin
     new(tmp);
     tmp^.name := name;
-    TryOpenFile(f, tmp);
+    TryOpenFile(f, tmp, init);
     if fp = nil then
     begin
         tmp^.idx := 1;
@@ -74,7 +85,7 @@ begin
     close(f)
 end;
 
-procedure PrintLongestLine(fp: FiledataPtr);
+procedure PrintLongestLine(var fp, init: FiledataPtr);
 var
     f: text;
     i: integer;
@@ -82,7 +93,7 @@ var
 begin
     if fp = nil then
         exit;
-    TryOpenFile(f, fp);
+    TryOpenFile(f, fp, init);
     for i := 1 to fp^.MaxIdx - 1 do
         readln(f);
     while not eoln(f) do
@@ -129,7 +140,7 @@ begin
         if MaxFileIdx = cur^.idx then
             write('*');
         write(cur^.name, ':');
-        PrintLongestLine(cur);
+        PrintLongestLine(cur, init);
         init := cur;
         cur := cur^.next;
         dispose(init)
