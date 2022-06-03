@@ -124,7 +124,8 @@ begin
         DepthSearchNextStep(cur, prev, finished);
         if (cur^.color = black) and (prev = cur^.parent) then
             BlackCounter := BlackCounter + 1
-        else if (prev^.color = black) and (prev <> cur^.parent) then
+        else if (prev^.color = black) and ((prev = cur^.left) or
+            (prev =  cur^.right)) then
             BlackCounter := BlackCounter - 1;
         if (cur^.left = nil) or (cur^.right = nil) then
             if benchmark = -1 then
@@ -186,6 +187,7 @@ begin
         SeekNotSpace(c);
         readln(key);
         case c of
+            {$IFNDEF TEST}
             '?': begin
                 if IsInTree(root, key) then
                     writeln('Yes!')
@@ -199,6 +201,7 @@ begin
                 else
                     writeln('Not in tree')
             end;
+            {$ENDIF}
             '+': begin
                 {$IFNDEF TEST}
                 write('Input data: ');
@@ -210,11 +213,24 @@ begin
                 writeln('Successfully added')
                 {$ENDIF}
             end;
+            '-': begin
+                RemoveFromTree(root, key, ok);
+                {$IFNDEF TEST}
+                if ok then
+                    writeln('Successfully removed')
+                else
+                    writeln('Not in tree')
+                {$ENDIF}
+            end;
+            '#': begin
+                ClearTree(root);
+                {$IFNDEF TEST}
+                writeln('Successfully cleared')
+                {$ENDIF}
+            end;
             {$IFDEF TEST}
             '!': begin
-                if TreeIsValid(root) then
-                    writeln('TEST PASSED: Red-black tree is valid')
-                else
+                if not TreeIsValid(root) then
                     writeln('TEST FAILED: Invalid tree!')
             end;
             {$IFDEF DEBUG}

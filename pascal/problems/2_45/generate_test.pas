@@ -1,22 +1,29 @@
 program GenerateTest; { generate_test.pas }
 uses crt;
 const
-    cap = 100;
-    MinOrd = 65;
-    MaxOrd = 90;
+    cap = 1000;
+    MinOrd = 48;
+    MaxOrd = 122;
 var
-    i: integer;
+    i, code: integer;
 begin
     randomize;
     for i := 1 to random(cap) do
     begin
-        writeln('+ ', chr(random(MaxOrd - MinOrd) + MinOrd));
-        writeln(1);
+        code := random(2);
+        if code = 0 then
+            write('+ ')
+        else
+            write('- ');
+        writeln(chr(random(MaxOrd - MinOrd) + MinOrd));
+        if code = 0 then
+            writeln(1);
         {$IFDEF DEBUG}
         writeln('~')
         {$ENDIF}
     end;
-    {$IFNDEF DEBUG}
-    writeln('!')
+    {$IFDEF TEST}
+    writeln('!');
     {$ENDIF}
+    writeln('#')
 end.

@@ -15,9 +15,8 @@ function IsInTree(p: TreeNodePtr; key: string): boolean;
 procedure GetElement(p: TreeNodePtr; key: string;
     var out: TreeNodePtr; var ok: boolean);
 procedure AddToTree(var p: TreeNodePtr; key: string; data: pointer);
-{ procedure RemoveFromTree(var p: TreeNodePtr; key: string;
-    var out: pointer; var ok: boolean);
-procedure ClearTree(var p: TreeNodePtr); }
+procedure RemoveFromTree(var p: TreeNodePtr; key: string; var ok: boolean);
+procedure ClearTree(var p: TreeNodePtr);
 
 implementation
 uses sysutils;
@@ -50,6 +49,11 @@ begin
         writeln('       parent is nil')
 end;
 {$ENDIF}
+
+function IsBlack(p: TreeNodePtr): boolean;
+begin
+    IsBlack := (p = nil) or (p^.color = black)
+end;
 
 procedure SearchTree(var p: TreeNodePtr; key: string;
     var out, parent: TreeNodePos);
@@ -116,7 +120,7 @@ begin
             out^^.parent := nil;
         out^^.color := red;
         {$IFDEF DEBUG}
-        writeln('DEBUG: key -- ', out^^.key);
+        writeln('DEBUG: add key -- ', out^^.key);
         write('parent info: ');
         LogNodeInfo(out^^.parent);
         {$ENDIF}
@@ -270,12 +274,14 @@ begin
     InsertCase4(p, root)
 end;
 
+procedure InsertCase1(p: TreeNodePtr; var root: TreeNodePtr); forward;
+
 procedure InsertCase2(p: TreeNodePtr; var root: TreeNodePtr);
 var
     g, u: TreeNodePtr;
 begin
     u := uncle(p);
-    if (u <> nil) and (u^.color = red) then
+    if not IsBlack(u) then
     begin
         {$IFDEF DEBUG}
         writeln('DEBUG: insert case 2');
@@ -284,10 +290,7 @@ begin
         u^.color := black;
         g := grandparent(p);
         g^.color := red;
-        if g^.parent = nil then
-            g^.color := black
-        else if g^.parent^.color = red then
-            InsertCase2(g, root)
+        InsertCase1(g, root)
     end
     else
         InsertCase3(p, root)
@@ -327,4 +330,211 @@ begin
     {$ENDIF}
 end;
 
+function child(p: TreeNodePtr): TreeNodePtr;
+begin
+    if (p <> nil) and (p^.left <> nil) then
+        child := p^.left
+    else if (p <> nil) and (p^.right <> nil) then
+        child := p^.right
+    else
+        child := nil
+end;
+
+function sibling(p, parent: TreeNodePtr): TreeNodePtr;
+begin
+    if parent = nil then
+        sibling := nil
+    else if p = parent^.right then
+        sibling := parent^.left
+    else
+        sibling := parent^.right
+end;
+
+procedure RemoveCase4(p, parent: TreeNodePtr; var root: TreeNodePtr);
+var 
+    s: TreeNodePtr;
+begin
+    {$IFDEF DEBUG}
+    writeln('DEBUG: remove case 4');
+    {$ENDIF}
+    s := sibling(p, parent);
+    s^.color := parent^.color;
+    parent^.color := black;
+    if p = parent^.left then
+    begin
+        s^.right^.color := black;
+        RotateLeft(parent, root)
+    end
+    else     
+    begin
+        s^.left^.color := black;
+        RotateRight(parent, root)
+    end
+end;
+
+procedure RemoveCase3(p, parent: TreeNodePtr; var root: TreeNodePtr);
+var 
+    s: TreeNodePtr;
+begin
+    s := sibling(p, parent);
+    if (s <> nil) and (p = parent^.left) and 
+        (not IsBlack(s^.left)) and IsBlack(s^.right) then
+    begin
+        {$IFDEF DEBUG}
+        writeln('DEBUG: remove case 3');
+        {$ENDIF}
+        s^.color := red;
+        s^.left^.color := black;
+        RotateRight(s, root)
+    end
+    else if (s <> nil) and (p = parent^.right) and
+        (not IsBlack(s^.right)) and IsBlack(s^.left) then
+    begin
+        {$IFDEF DEBUG}
+        writeln('DEBUG: remove case 3');
+        {$ENDIF}
+        s^.color := red;
+        s^.right^.color := black;
+        RotateLeft(s, root)
+    end;
+    RemoveCase4(p, parent, root)
+end;
+
+procedure RemoveCase1(p, parent: TreeNodePtr; var root: TreeNodePtr); forward;
+
+procedure RemoveCase2(p, parent: TreeNodePtr; var root: TreeNodePtr);
+var 
+    s: TreeNodePtr;
+begin
+    s := sibling(p, parent);
+    if (s <> nil) and IsBlack(s^.left) and IsBlack(s^.right) then
+    begin
+        {$IFDEF DEBUG}
+        writeln('DEBUG: remove case 2');
+        {$ENDIF}
+        s^.color := red;
+        if parent^.color = black then
+            RemoveCase1(parent, parent^.parent, root) 
+        else
+            parent^.color := black
+    end
+    else
+        RemoveCase3(p, parent, root)
+end;
+
+procedure RemoveCase1(p, parent: TreeNodePtr; var root: TreeNodePtr);
+var 
+    s: TreeNodePtr;
+begin
+    s := sibling(p, parent);
+    if not IsBlack(s) then
+    begin
+        {$IFDEF DEBUG}
+        writeln('DEBUG: remove case 1');
+        {$ENDIF}
+        s^.color := black;
+        parent^.color := red;
+        if p = parent^.left then
+            RotateLeft(parent, root)
+        else
+            RotateRight(parent, root)
+    end;
+    RemoveCase2(p, parent, root)
+end;
+
+procedure RemoveCase0(p, parent: TreeNodePtr; var root: TreeNodePtr);
+begin
+    if not IsBlack(p) then
+    begin
+        {$IFDEF DEBUG}
+        writeln('DEBUG: remove case 0');
+        {$ENDIF}
+        p^.color := black
+    end
+    else if parent <> nil then
+        RemoveCase1(p, parent, root)
+    {$IFDEF DEBUG}
+    else
+        writeln('DEBUG: remove case 0.5')
+    {$ENDIF}
+end;
+
+procedure ReplaceWithChild(var p, parent: TreeNodePtr; var root: TreeNodePtr);
+var
+    tmp: TreeNodePtr;
+begin
+    tmp := p;
+    parent := p^.parent;
+    p := child(p);
+    if p <> nil then
+        p^.parent := tmp^.parent;
+    if tmp^.parent = nil then
+        root := p
+    else
+        if tmp = tmp^.parent^.left then
+            tmp^.parent^.left := p
+        else
+            tmp^.parent^.right := p;
+    dispose(tmp)
+end;
+
+procedure RemoveBase(p: TreeNodePtr; var root: TreeNodePtr);
+var
+    color: NodeColor;
+    tmp, parent: TreeNodePtr;
+begin
+    {$IFDEF DEBUG}
+    writeln('DEBUG: remove key -- ', p^.key);
+    write('parent info: ');
+    LogNodeInfo(p^.parent);
+    {$ENDIF}
+    if (p^.left <> nil) and (p^.right <> nil) then
+    begin
+        tmp := p^.left;
+        while tmp^.right <> nil do
+            tmp := tmp^.right;
+        p^.key := tmp^.key;
+        p^.data := tmp^.data;
+        p := tmp
+    end;
+    {$IFDEF DEBUG}
+    writeln('DEBUG: real remove key -- ', p^.key, ', color: ', p^.color);
+    LogNodeInfo(p);
+    {$ENDIF}
+    color := p^.color;
+    ReplaceWithChild(p, parent, root);
+    {$IFDEF DEBUG}
+    writeln('   color after replacement: ', color);
+    {$ENDIF}
+    if color = black then
+        RemoveCase0(p, parent, root)
+end;
+
+procedure RemoveFromTree(var p: TreeNodePtr; key: string; var ok: boolean);
+var
+    out, parent: TreeNodePos;
+begin
+    parent := nil;
+    SearchTree(p, key, out, parent);
+    if out^ = nil then
+        ok := false
+    else
+    begin
+        ok := true;
+        {$IFDEF DEBUG}
+        writeln('DEBUG: removed node color: ', out^^.color); 
+        {$ENDIF}
+        RemoveBase(out^, p)
+    end
+end;
+
+procedure ClearTree(var p: TreeNodePtr);
+var
+    tmp, parent: TreeNodePtr;
+begin
+    tmp := p;
+    while p <> nil do
+        ReplaceWithChild(tmp, parent, p)
+end;
+        
 end.
