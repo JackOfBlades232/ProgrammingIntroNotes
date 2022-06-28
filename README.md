@@ -1,5 +1,5 @@
 # ProgrammingIntroNotes
-In these repository you can find notes to a series of books called "Programming: introduction to the profession" by Andrey Stolyarov, 
+In this repository you can find notes to a series of books called "Programming: introduction to the profession" by Andrey Stolyarov, 
 and solutions to some problems in the taskbook that comes with the series.
 This is my main instrument for learning the fundamentals of programming, and I thought I'd share my experience and progress.
 
