@@ -2,18 +2,19 @@ unit utils; { utils.pp }
 interface
 const
     MaxNumRecords = 10000000;
-    HashBase = 0;
-    HashMultiplier = 31;
     NameBufSize = 60;
     CntBufSize = 4;
 
 procedure TryOpenFile(var f: file; name: string);
-procedure CreateHashTable(var f: file; NumRecords: longint);
+procedure CreateHashTable(var f: file);
 procedure TryOpenElseCreateFile(var f: file; name: string);
 procedure CheckForWriteError(ReadRes, WriteRes: longint);
-function HashFunction(name: string; NumRecords: longint): longint;
+function HashFunction(name: string): longint;
 
 implementation
+const
+    HashBase = 0;
+    HashMultiplier = 13;
 
 procedure TryOpenFile(var f: file; name: string);
 begin
@@ -27,7 +28,7 @@ begin
     end
 end;
 
-procedure CreateHashTable(var f: file; NumRecords: longint);
+procedure CreateHashTable(var f: file);
 var
     zero, i, WriteRes: longint;
     EmptyName: string;
@@ -35,7 +36,7 @@ begin
     rewrite(f, 1);
     zero := 0;
     EmptyName := '';
-    for i := 1 to NumRecords do
+    for i := 1 to MaxNumRecords do
     begin
         BlockWrite(f, EmptyName, NameBufSize, WriteRes);
         BlockWrite(f, zero, CntBufSize, WriteRes)
@@ -48,7 +49,7 @@ begin
     assign(f, name);
     reset(f, 1);
     if IOResult <> 0 then
-        CreateHashTable(f, MaxNumRecords) 
+        CreateHashTable(f)
 end;
 
 procedure CheckForWriteError(ReadRes, WriteRes: longint);
@@ -57,24 +58,30 @@ begin
         writeln(ErrOutput, 'Couldn''t write to file')
 end;
 
-function HashFunction(name: string; NumRecords: longint): longint;
+function HashFunction(name: string): longint;
 var
     i: integer;
+    c: char;
 begin
     HashFunction := HashBase;
-    i := 1;
-    while name[i] <> #0 do
+    {$IFDEF DEBUG}
+    write('DEBUG: string for hash: ', name, ', char ords: ');
+    {$ENDIF}
+    for i := 1 to length(name) do
     begin
-        if i > NameBufSize then
-        begin
-            HashFunction := 0;
-            break
-        end;
-        HashFunction := HashFunction * HashMultiplier + ord(name[i]);
-        while HashFunction > NumRecords do
-            HashFunction := HashFunction - NumRecords;
-        i := i + 1
-    end
+        c := name[i];
+        if (c = #0) or (i >= NameBufSize) then
+            break;
+        {$IFDEF DEBUG}
+        write(c, ':', ord(c), ' ');
+        {$ENDIF}
+        HashFunction := HashFunction * HashMultiplier + ord(c);
+        while HashFunction > MaxNumRecords do
+            HashFunction := HashFunction - MaxNumRecords
+    end;
+    {$IFDEF DEBUG}
+    writeln
+    {$ENDIF}
 end;
 
 end.

@@ -40,7 +40,7 @@ var
     res: integer;
 begin
     TryOpenFile(f, filename);
-    hash := HashFunction(query, MaxNumRecords);
+    hash := HashFunction(query);
     {$IFDEF DEBUG}
     writeln('DEBUG: query: ', query, ', hash: ', hash);
     {$ENDIF}
@@ -51,7 +51,7 @@ begin
     begin
         BlockRead(f, name, NameBufSize, ReadRes);
         BlockRead(f, cnt, CntBufSize, ReadRes);
-        if ReadRes = 0 then
+        if (ReadRes = 0) or (cnt = 0) then
             break;
         res := CompareStr(name, query);
         if res = 0 then
@@ -121,7 +121,7 @@ var
     hash: longint;
 begin
     TryOpenElseCreateFile(f, filename);
-    hash := HashFunction(query, MaxNumRecords);
+    hash := HashFunction(query);
     PerformAddToOpenFile(f, query, hash, increment);
     close(f)
 end;

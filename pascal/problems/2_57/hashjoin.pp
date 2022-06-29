@@ -23,16 +23,16 @@ begin
         ok := false;
         exit
     end;
-    res := CompareStr('', name1);
-    if res = 0 then
+    if cnt1 = 0 then
         goto Increment;
-    hash := HashFunction(name1, MaxNumRecords);
+    res := 1;
+    hash := HashFunction(name1);
     seek(f2, hash * (NameBufSize + CntBufSize));
     while res <> 0 do
     begin
         BlockRead(f2, name2, NameBufSize, ReadRes2);
         BlockRead(f2, cnt2, CntBufSize, ReadRes2);
-        if ReadRes2 <> ReadRes1 then
+        if (ReadRes2 <> ReadRes1) or (cnt2 = 0) then
             break;
         res := CompareStr(name1, name2)
     end;
@@ -64,12 +64,12 @@ begin
         ok := false;
         exit
     end;
-    res := CompareStr('', name1);
-    if res = 0 then
+    if cnt1 = 0 then
         goto Increment;
-    hash := HashFunction(name1, MaxNumRecords);
+    hash := HashFunction(name1);
     seek(f2, hash * (NameBufSize + CntBufSize));
-    while res <> 0 do
+    cnt2 := 1;
+    while cnt2 <> 0 do
     begin
         BlockRead(f2, name2, NameBufSize, ReadRes2);
         BlockRead(f2, cnt2, CntBufSize, ReadRes2);
@@ -77,10 +77,7 @@ begin
             break;
         res := CompareStr(name1, name2);
         if res = 0 then
-            goto Increment;
-        res := CompareStr('', name2);
-        if res = 0 then
-            break
+            goto Increment
     end;
     {$IFDEF DEBUG}
     writeln('DEBUG: name comparison result: ', res);
