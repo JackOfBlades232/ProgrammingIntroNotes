@@ -18,7 +18,7 @@ x       resd 1          ; 1 4-byte word to x
 matrix  resd 10*15      ; memory for matrix
 
 section .text
-fcircle dw 360          ; initialize const
+fcircle dw 360          ; initialize immutable val
 _start: mov eax, ebx    ; cp from ebx to eax
         mov ecx, 5      ; put 5 in ecx
         mov [x], ecx    ; cp from ecx to mem in x
@@ -39,7 +39,7 @@ _start: mov eax, ebx    ; cp from ebx to eax
         adc edx, ebx    ; add upper parts with overflow
         sub eax, ecx    ; sub lower parts
         sbb edx, ebx    ; sub upper parts with overflow
-        cmp ecx, 25     ; compare and update flag
+        cmp ecx, 25     ; compare and update flags
         mov eax, 320    ; put 320 in eax
         mov ebx, 442    ; put 442 in ebx
         mul bl          ; mult al by bl, res in ax
@@ -54,4 +54,29 @@ _start: mov eax, ebx    ; cp from ebx to eax
         cwd             ; convert ax to dx:ax
         cwde            ; ax to eax
         cdq             ; eax to edx:eax
+        add eax, ecx    ; add ecx to eax
+        jz sjump        ; jump if ZF=1 (same with js, jc, jo, jp) def short
+        jnz near next   ; jump if ZF=0 (same with jns, et cetera)
+        ; js [eax]      ; cant do this, only labels and const for cond jump 
+        jmp sjump       ; uncond jump to exit
+sjump:  jmp short next  ; optimized jump if adr is within 127 bytes
+        mov eax, 4      ; put 4 in eax
+        mov ebx, 3      ; put 3 in ebx
+        cmp eax, ebx    ; compare eax, ebx
+next:   jle sjump       ; jump if eax is less or equal to ebx
+        ; there are jumps for all comp results, different for signed and uns
+        mov ecx, 0      ; put 0 in ecx
+cycle:  cmp ecx, 5      ; compare counter to 5
+        jnl cycle_quit  ; break if counter not less then 5
+        inc ecx         ; increment counter
+        jmp cycle       ; repeat
+cycle_quit:
+        cmp ecx, 5      ; compare ecx to 5
+        jnz else_branch ; if not equal, go to else
+        mov ecx, 0      ; if body
+        jmp if_quit     ; skip else branch
+else_branch:
+        mov ecx, 1      ; else body
+if_quit:
+        xor ecx, ecx    ; better way to zero out
         FINISH          ; exit macro
