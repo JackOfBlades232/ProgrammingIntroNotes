@@ -24,11 +24,13 @@ _start: mov eax, ebx    ; cp from ebx to eax
         mov [x], ecx    ; cp from ecx to mem in x
         mov edx, [x]    ; cp from mem in x to edx, cant move from mem to mem
         mov edx, x      ; cp adress x to edx
-        mov ebx, [eax]  ; cp value of mem in eax to ebx
+        mov ebx, [edx]  ; cp value of mem in eax to ebx
         mov eax, [count+ebx+2*edi]  ; complex adress for array index search
         mov edx, [matrix+eax+4*ebx] ; search matrix
         lea eax, [1000+ebx+8*ecx]   ; put adress in eax
         mov dword [x], 25   ; put 25 in mem in x, have to specify type
+        mov eax, 5      ; put 5 in eax
+        mov edx, 6      ; put 6 in edx
         add eax, ebx    ; add ebx to eax and put in eax
         sub [x], ecx    ; subtract ecx from mem in x and put in mem in x
         add edx, 12     ; add 12 to edx and put in edx
@@ -38,6 +40,8 @@ _start: mov eax, ebx    ; cp from ebx to eax
         sub eax, ecx    ; sub lower parts
         sbb edx, ebx    ; sub upper parts with overflow
         cmp ecx, 25     ; compare and update flag
+        mov eax, 320    ; put 320 in eax
+        mov ebx, 442    ; put 442 in ebx
         mul bl          ; mult al by bl, res in ax
         mul bx          ; mult ax by bx, res in dx:ax
         mul ebx         ; mult eax by ebx, res in edx:eax
@@ -48,6 +52,6 @@ _start: mov eax, ebx    ; cp from ebx to eax
         idiv bx         ; signed
         cbw             ; convert al to ax (fill ah with sign of al)
         cwd             ; convert ax to dx:ax
-        cwde            ; convert ax to eax
-        cdq             ; convert eax to edx:eax
-        FINISH
+        cwde            ; ax to eax
+        cdq             ; eax to edx:eax
+        FINISH          ; exit macro
