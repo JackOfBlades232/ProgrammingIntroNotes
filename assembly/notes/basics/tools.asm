@@ -16,6 +16,7 @@ string  resb 20         ; 20 bytes to string
 count   resw 256        ; 256 2-byte words to count
 x       resd 1          ; 1 4-byte word to x
 matrix  resd 10*15      ; memory for matrix
+array   resd 1000       ; array of a 1000 2-byte words
 
 section .text
 fcircle dw 360          ; initialize immutable val
@@ -56,15 +57,16 @@ _start: mov eax, ebx    ; cp from ebx to eax
         cdq             ; eax to edx:eax
         add eax, ecx    ; add ecx to eax
         jz sjump        ; jump if ZF=1 (same with js, jc, jo, jp) def short
-        jnz near next   ; jump if ZF=0 (same with jns, et cetera)
+        jnz near sjump  ; jump if ZF=0 (same with jns, et cetera)
         ; js [eax]      ; cant do this, only labels and const for cond jump 
         jmp sjump       ; uncond jump to exit
 sjump:  jmp short next  ; optimized jump if adr is within 127 bytes
         mov eax, 4      ; put 4 in eax
         mov ebx, 3      ; put 3 in ebx
         cmp eax, ebx    ; compare eax, ebx
-next:   jle sjump       ; jump if eax is less or equal to ebx
+next:   jle init_cycle  ; jump if eax is less or equal to ebx
         ; there are jumps for all comp results, different for signed and uns
+init_cycle:
         mov ecx, 0      ; put 0 in ecx
 cycle:  cmp ecx, 5      ; compare counter to 5
         jnl cycle_quit  ; break if counter not less then 5
@@ -78,5 +80,29 @@ cycle_quit:
 else_branch:
         mov ecx, 1      ; else body
 if_quit:
-        xor ecx, ecx    ; better way to zero out
+        mov ecx, 1000   ; number of iterations
+        mov esi, array  ; first elem adress
+        mov eax, 0      ; init value of sum
+lp:     add eax, [esi]  ; add array elem to sum
+        add esi, 4      ; take next elem adress
+        loop lp         ; uses val in ecx and compares it to 0, if > -- jumps
+        ; loop machine code is smaller then dec ecx, jnz lp, loop is short j
+        mov ecx, 1000   ; again, number of iterations
+        mov eax, 0      ; init sum
+        jecxz lpq       ; jump if ecx is 0 (there is also jcxz)
+lp1:    add eax, [array+4*ecx-4]    ; less commands by calculating adress
+        loop lp1        ; loop
+        ; there are also loopz (jmp if ecx is not 0, and ZF=1), and
+        ; loopnz/loopne (jmp if ecx is not 0 and ZF=0)
+lpq:    xor ecx, ecx    ; bitwise xor, works like add
+        and eax, ecx    ; bitwise and
+        or edx, ecx     ; bitwise or
+        not edx         ; bitwise not
+        test eax, eax   ; performs bitwise and and checks if all bits are 0
+        shl ebx, 3      ; bitwise shift left, can be from 1 to 31, last->CF
+        inc ecx         ; make ecx 1
+        shr ebx, cl     ; only cl can be used for shifts, take only 5 bits
+        sar edx, 2      ; like shr, but keeps sign bit the same
+        ; other (to study): 
+            ;sal, shrd, shld, rcr, rcl, ror, rol, bt, bts, btc, btr, bsf, bsr
         FINISH          ; exit macro
