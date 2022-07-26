@@ -103,6 +103,18 @@ lpq:    xor ecx, ecx    ; bitwise xor, works like add
         inc ecx         ; make ecx 1
         shr ebx, cl     ; only cl can be used for shifts, take only 5 bits
         sar edx, 2      ; like shr, but keeps sign bit the same
+        stc             ; set CF=1
+        clc             ; set CF=0
+        lahf            ; copy flags to AH: CF->0 bit, PF->2 bit, AF->4 bit,
+        ;   ZF->6 bit, SF->7 bit
+        movsx eax, bx   ; move to 2x size place (only to reg from reg/mem)
+        movzx ebx, ax   ; *sx fills with sign, *zx fills with 0
+        cpuid           ; find out cpu model
+        bswap eax       ; reverse bits in eax (only for 32-bit regs)
+        xchg eax, ebx   ; swap values (reg | reg/mem), autolocks RAM
+        lock sub [array], eax   ; lock RAM while executing command 
+        nop             ; do nothing
         ; other (to study): 
-            ;sal, shrd, shld, rcr, rcl, ror, rol, bt, bts, btc, btr, bsf, bsr
+        ;   sal, shrd, shld, rcr, rcl, ror, rol, bt, bts, btc, btr, bsf, bsr
+        ;   xlat (for encoding text), aaa, aad, aam, aas (for decimal arifm)
         FINISH          ; exit macro
