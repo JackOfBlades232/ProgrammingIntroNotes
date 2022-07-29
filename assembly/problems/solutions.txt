@@ -5,3 +5,11 @@ c) db5bb6h
 d) 7ff55ch 
 e) 55c95fh 
 f) 5e402eh 
+
+3.02
+a) ff; ZF=0, CF=0, SF=1, OF=0
+b) 00; ZF=1, CF=1, SF=0, OF=0
+c) 3d; ZF=0, CF=0, SF=0, OF=0
+d) 1e; ZF=0, CF=1, SF=0, OF=0
+e) 81; ZF=0, CF=0, SF=1, OF=1
+f) 7b; ZF=0, CF=1, SF=0, OF=1
