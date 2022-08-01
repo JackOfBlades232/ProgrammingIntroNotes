@@ -39,3 +39,7 @@ ZF, SF, OF: impossible
 ZF, CF, OF: AL=80, BL=80
 CF, SF, OF: impossible
 ZF, CF, SF, OF: impossible
+
+3.05
+OF: AL=81, BL=10
+CF, SF, OF: AL=7c, BL=88
