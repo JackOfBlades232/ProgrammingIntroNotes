@@ -13,3 +13,29 @@ c) 3d; ZF=0, CF=0, SF=0, OF=0
 d) 1e; ZF=0, CF=1, SF=0, OF=0
 e) 81; ZF=0, CF=0, SF=1, OF=1
 f) 7b; ZF=0, CF=1, SF=0, OF=1
+
+3.03
+a) fe; ZF=0, CF=1, SF=1, OF=0
+b) 2b; ZF=0, CF=1, SF=0, OF=0
+c) ff; ZF=0, CF=1, SF=1, OF=0
+d) 11; ZF=0, CF=0, SF=0, OF=0
+e) 70; ZF=0, CF=0, SF=0, OF=1
+f) f4; ZF=0, CF=1, SF=1, OF=1
+
+3.04
+None: AL=1, BL=1
+ZF: AL=0, BL=0
+CF: AL=1, BL=ff
+SF: AL=fe, BL=1
+OF: impossible
+ZF, CF: AL=ff, BL=1
+ZF, SF: impossible
+ZF, OF: impossible
+CF, SF: AL=81, BL=fe
+CF, OF: AL=8b, BL=f0
+SF, OF: AL=79, BL=79
+ZF, CF, SF: impossible
+ZF, SF, OF: impossible
+ZF, CF, OF: AL=80, BL=80
+CF, SF, OF: impossible
+ZF, CF, SF, OF: impossible
