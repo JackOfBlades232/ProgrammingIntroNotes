@@ -43,3 +43,17 @@ ZF, CF, SF, OF: impossible
 3.05
 OF: AL=81, BL=10
 CF, SF, OF: AL=7c, BL=88
+
+3.06
+a) 44448h
+b) 12301230h
+c) 0defcdefch
+d) 23456780h
+e) 1234567h
+f) 3c00h
+g) 9abch
+h) ffff9abch
+i) 4567h
+j) f10045h
+k) 210798feh
+l) ffffff00h
