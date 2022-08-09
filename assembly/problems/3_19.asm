@@ -13,9 +13,7 @@ lp1:    GETCHAR
         jz lp1
         inc ebx
         jmp lp1
-dgs:    cmp ebx, 0
-        jz quit
-        mov eax, ebx
+dgs:    mov eax, ebx
         xor edx, edx
         mov ebx, 10
         mov ecx, 10
