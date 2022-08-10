@@ -1,3 +1,5 @@
+; Here I presume that the number is not higher than 2^32
+
 %include "../stud_io.inc"
 global _start
 
