@@ -1,5 +1,6 @@
 #!/bin/sh
 # 1_12-13.sh
+
 CMD=$*
 TIME=$( date +%s )
 $CMD
