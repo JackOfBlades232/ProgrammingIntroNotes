@@ -6,14 +6,18 @@ in_str  resb 10             ; 10 bytes for reading input
 out_str resb 10             ; 10 bytes for output of functions
 
 section .text
-; read unsigned number (address=eax, length=cl) : number->eax, success flag->cl
-; overflow raises .error
+; read unsigned number (address=[ebp+12], length=[ebp+8]) :
+;   number->eax, success flag->cl
+; overflow raises error
 read_num:                   ; SUBPR START
+        push ebp            ; init stack frame
+        mov ebp, esp
         push esi            ; save prev esi value, will be using it
         push ebx            ; also save ebx
+        mov ecx, [ebp+8]    ; put length param in ecx
+        mov esi, [ebp+12]   ; put adr param in esi
         cmp cl, 0           ; check if length is 0
         jz .err             ; if so, go to err
-        mov esi, eax        ; put adr in esi
         xor eax, eax        ; zero out number
         mov ebx, 10         ; place multiplier in ebx
 .lp:    mov ch, [esi]       ; mov next char to ch
@@ -36,12 +40,18 @@ read_num:                   ; SUBPR START
 .err:   mov cl, 1           ; if it was an .error, put 1 in cl
 .quit:  pop ebx             ; restore ebx
         pop esi             ; restore esi
+        mov esp, ebp        ; deinit stack frame
+        pop ebp
         ret
-; write unsigned num (number=eax, address=ecx) : string->address, length->cl
+; write unsigned num (number=[ebp+12], address=[ebp+8]) :
+;   string->address, length->cl
 write_num:                  ; SUBPR START
+        push ebp            ; init stack frame
+        mov ebp, esp
         push edi            ; save prev edi value, will be using it
         push ebx            ; same with ebx
-        mov edi, ecx        ; mov address to edi
+        mov edi, [ebp+8]    ; mov address to edi
+        mov eax, [ebp+12]   ; mov number to eax 
         mov ebx, 10         ; put divisor in ebx
         xor ecx, ecx        ; zero out digit counter
 .stack_lp:
@@ -60,13 +70,18 @@ write_num:                  ; SUBPR START
         mov cl, dl          ; restore cl
         pop ebx             ; restore ebx
         pop edi             ; restore edi
+        mov esp, ebp        ; deinit stack frame
+        pop ebp
         ret
-; output char string (address=eax, length=cl)
+; output char string (address=[ebp+12], length=[ebp+8])
 output_str:                 ; SUBPR START
+        push ebp            ; init stack frame
+        mov ebp, esp
         push esi            ; save prev esi value, will be using it
+        mov ecx, [ebp+8]    ; put len param in ecx
+        mov esi, [ebp+12]   ; put adr param in esi
         cmp cl, 0           ; check if string is empty
         jz .quit            ; if so, exit subpr
-        mov esi, eax        ; prepare esi for output
 .out_lp: 
         lodsb               ; read char to eax
         PUTCHAR al          ; output the digit
@@ -75,15 +90,19 @@ output_str:                 ; SUBPR START
         jnz .out_lp         ; if not, repeat
         PUTCHAR 10          ; new line after
 .quit:  pop esi             ; restore esi
+        mov esp, ebp        ; deinit stack frame
+        pop ebp
         ret
-; read string from input (address=eax, length=cl) :
-; num address->eax, symbols read->cl, exit symbol->dl
+; read string from input (address=[ebp+12], length=[ebp+8]) :
+;   num address->eax, symbols read->cl, exit symbol->dl
 input_str:
+        push ebp            ; init stack frame
+        mov ebp, esp
         push edi            ; save prev edi value, will be using it
-        push eax            ; save string address
+        mov ecx, [ebp+8]    ; put length param in ecx
+        mov edi, [ebp+12]   ; put adr param in esi
         cmp cl, 0           ; check if free mem is 0
         jz .mem_quit        ; if so, exit subpr by mem
-        mov edi, eax        ; move address to edi
         mov dl, cl          ; store init cl val in dl
 .in_lp: GETCHAR             ; get next char from input to eax
         cmp al, '0'         ; check if less then char '0'
@@ -107,18 +126,28 @@ input_str:
         GETCHAR             ; get next char from input
         cmp eax, 10         ; check if eoln
         jnz .buf_clear_lp   ; if not, go to eat next char
-.quit:  pop eax             ; restore address
+.quit:  mov eax, [ebp+12]   ; put adr in eax
         pop edi             ; restore edi
+        mov esp, ebp        ; deinit stack frame
+        pop ebp
         ret
 ; main code
-_start: mov eax, in_str     ; init param adr
-        mov cl, 10          ; init param len
+_start: push dword in_str   ; push param adr
+        push dword 10       ; push param len
         call input_str      ; call subpr 
+        add esp, 8          ; clear stack from 2 params
+        push eax            ; push adr param to stack
+        push ecx            ; push length param to stack
         call read_num       ; call subpr (all params in place)
+        add esp, 8          ; clear stack from 2 params
         cmp cl, 0           ; check if exit code was 0
         jnz quit            ; if it wasnt, quit program
-        mov ecx, out_str    ; init adr param (number already in eax)
+        push eax            ; push number param
+        push dword out_str  ; push adr param 
         call write_num      ; call subpr
-        mov eax, out_str    ; init adr param (for output, length in cl already)
+        add esp, 8          ; clear stack from 2 params
+        push dword out_str  ; push param adr
+        push ecx            ; push param len
         call output_str     ; call subpr
+        add esp, 8          ; clear stack from 2 params
 quit:   FINISH              ; exit with macro
