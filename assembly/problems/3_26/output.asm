@@ -17,7 +17,6 @@ output_str:                 ; SUBPR START
         dec cl              ; decrease counter
         cmp cl, 0           ; check if counter is 0
         jnz .out_lp         ; if not, repeat
-        PUTCHAR 10          ; new line after
 .quit:  pop esi             ; restore esi
         mov esp, ebp        ; deinit stack frame
         pop ebp

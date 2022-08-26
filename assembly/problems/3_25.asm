@@ -2,8 +2,7 @@
 global _start
 
 section .bss
-in_str  resb 10             ; 10 bytes for reading input
-out_str resb 10             ; 10 bytes for output of functions
+digits  resb 10             ; array of digits for i-o
 
 section .text
 ; read unsigned number (address=[ebp+12], length=[ebp+8]) :
@@ -88,7 +87,6 @@ output_str:                 ; SUBPR START
         dec cl              ; decrease counter
         cmp cl, 0           ; check if counter is 0
         jnz .out_lp         ; if not, repeat
-        PUTCHAR 10          ; new line after
 .quit:  pop esi             ; restore esi
         mov esp, ebp        ; deinit stack frame
         pop ebp
@@ -132,7 +130,8 @@ input_str:
         pop ebp
         ret
 ; main code
-_start: push dword in_str   ; push param adr
+_start: xor bl, bl          ; prepare read counter
+input:  push dword digits   ; push param adr
         push dword 10       ; push param len
         call input_str      ; call subpr 
         add esp, 8          ; clear stack from 2 params
@@ -141,13 +140,39 @@ _start: push dword in_str   ; push param adr
         call read_num       ; call subpr (all params in place)
         add esp, 8          ; clear stack from 2 params
         cmp cl, 0           ; check if exit code was 0
-        jnz quit            ; if it wasnt, quit program
+        jnz of              ; if it wasnt, quit with overflow warning
+        push eax            ; push first number to stack
+        inc bl              ; increment read counter
+        cmp bl, 2           ; check if read 2 numbers
+        jl input            ; if not, read another number
+        xor ebp, ebp        ; use ebp as output num counter
+        pop ebx             ; pop second number to ebx
+c_lp:   mov eax, [esp]      ; put first number in eax
+        cmp ebp, 0          ; check if first iter
+        jz c_sum            ; if so, go to calc sum
+        cmp ebp, 1          ; check if second iter
+        jz c_diff           ; if so, go to calc diff
+        mul ebx             ; else, calc prod
+        jmp of_chk          ; and go to output
+c_diff: sub eax, ebx        ; if diff, calc diff
+        jmp of_chk          ; and jump to output
+c_sum:  add eax, ebx        ; else, add ebx to eax
+of_chk: jc of               ; if carry flag, go to overflow
         push eax            ; push number param
-        push dword out_str  ; push adr param 
+        push dword digits   ; push adr param 
         call write_num      ; call subpr
         add esp, 8          ; clear stack from 2 params
-        push dword out_str  ; push param adr
+        push dword digits   ; init adr param (for output, length in cl already)
         push ecx            ; push param len
         call output_str     ; call subpr
         add esp, 8          ; clear stack from 2 params
+        PUTCHAR ' '         ; put space after
+c_lp_fin:
+        inc ebp             ; increment iter counter
+        cmp ebp, 3          ; check if all iterations done
+        jl c_lp             ; if not, go to calc loop start
+        PUTCHAR 10          ; newline after output
+        jmp quit            ; and quit
+of:     PRINT "OVERFLOW"    ; warn about overflow
+        PUTCHAR 10          ; and new line
 quit:   FINISH              ; exit with macro
