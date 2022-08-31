@@ -37,28 +37,43 @@ brk_symbol:
         cmp bl, ' '         ; check if space
         jz main_lp          ; if so, repeat loop
         cmp bl, -1          ; check if eof
-        jz arifm            ; if so, go to loop fin
+        jz arifm_init       ; if so, go to loop fin
         cmp bl, 10          ; check if eoln, if so go to loop fin
-        jz arifm            ; if so, also go to loop fin
+        jz arifm_init       ; if so, also go to loop fin
         cmp bl, ')'         ; check if it is a closing parens
-        jz arifm            ; if so, go to lp fin
+        jz arifm_init       ; if so, go to lp fin
         push ebx            ; put char in stack (first param)
         call check_char     ; call subpr
         add esp, 4          ; clear param from stack
-        cmp cl, 0           ; check if the char is good
-        jnz err             ; if it is not good, go to error
+        cmp cl, 3           ; check if the char is good
+        jz err              ; if it is not good, go to error
         push ebx            ; if all good, push char to stack
         jmp main_lp         ; and repeat main loop
+arifm_init:
+        xor ebx, ebx        ; clear major accumulator in ebx
 arifm:  mov esi, esp        ; put stack top in esi
 backtrack_lp:
         cmp ebp, esi        ; check if reached stack base
         jz arifm_lp_init    ; if so, go to arifm loop
-        cmp byte [esi+4], '('   ; check if sign is open bracket
-        jz arifm_lp_init    ; same here
-        add esi, 4          ; inc esi by dword
+PUTCHAR byte [esi+4]
+        push dword [esi+4]  ; push param to stack
+        call check_char     ; call subpr
+        add esp, 4          ; clear stack from params
+add cl, '0'
+PUTCHAR ' '
+PUTCHAR cl
+sub cl, '0'
+PUTCHAR 10
+        cmp cl, 1           ; check if mul or div
+        jnz arifm_lp_init   ; same here
+        add esi, 8          ; inc esi by 2 dwords
         jmp backtrack_lp    ; and repeat loop
 arifm_lp_init:
         mov eax, [esi]      ; put first number in accumulator
+add al, '0'
+PUTCHAR al
+sub al, '0'
+PUTCHAR 10
         mov edi, esi        ; copy esi to edi
 arifm_lp:
         cmp edi, esp        ; check if reached stack top
@@ -76,11 +91,29 @@ arifm_fin:
         mov esp, esi        ; put stack top at first number
         cmp ebp, esp        ; check if reached stack base
         jz result           ; if so, go to res
+        cmp byte [esp+4], '('   ; check if next char is open parens
+        jnz sumdiff         ; if not, go to handle sum or diff 
         add esp, 4          ; else, offset stack top
-        mov [esp], eax      ; push final number
+        add ebx, eax        ; add eax to ebx
+        mov [esp], ebx      ; push final number
         jmp main_lp         ; and repeat main loop
+sumdiff:
+add al, '0'
+add bl, '0'
+PUTCHAR al
+PUTCHAR bl
+sub al, '0'
+sub bl, '0'
+PUTCHAR 10
+        mov [esp], eax      ; put eax in last number spot
+        push ebx            ; push major accumulator to stack (last param)
+        call apply_arifm    ; call subpr
+        add esp, 12         ; clear params from stack
+        mov ebx, eax        ; return major accumulator to ebx
+        jmp arifm           ; repeat outer arifm loop
 result:
-        mov [esp], eax      ; push final number
+        add ebx, eax        ; add eax to ebx
+        mov [esp], ebx      ; push final number
         push dword digits   ; push adr param to stack 
         call write_num      ; call subpr
         add esp, 8          ; clear params from stack
