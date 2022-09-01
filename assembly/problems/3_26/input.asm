@@ -3,7 +3,7 @@ global input_str
 
 section .text
 ; read string from input (address=[ebp+12], length=[ebp+8]) :
-;   num address->eax, symbols read->cl, exit symbol->dl
+;   num address->eax, symbols read->cl, break symbol->dl
 input_str:
         push ebp            ; init stack frame
         mov ebp, esp
@@ -25,17 +25,11 @@ input_str:
         xchg dl, cl         ; swap dl and cl values
         cmp dl, 0           ; check if ran out of mem
         jz .mem_quit        ; if so, to mem quit 
-        mov dl, al          ; put culprit char (or eof code) in dl
-        cmp dl, 10          ; check if breaking char was eoln
-        jnz .buf_clear_lp   ; if it was not, proceed to clear buffer
-        jmp .quit           ; and jump to quit
+        jmp .quit           ; else, jump to quit
 .mem_quit:
-        mov dl, -2          ; put sign of running out of mem in dl
-.buf_clear_lp:              ; have to clear buffer until eol
-        GETCHAR             ; get next char from input
-        cmp eax, 10         ; check if eoln
-        jnz .buf_clear_lp   ; if not, go to eat next char
-.quit:  mov eax, [ebp+12]   ; put adr in eax
+        GETCHAR             ; read one more symbol after mem quit
+.quit:  mov dl, al          ; put culprit char (or eof code) in dl
+        mov eax, [ebp+12]   ; put adr in eax
         pop edi             ; restore edi
         mov esp, ebp        ; deinit stack frame
         pop ebp

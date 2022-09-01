@@ -4,6 +4,7 @@ extern read_num
 extern write_num
 extern input_str
 extern output_str
+extern clear_line
 
 section .bss
 digits  resb 10             ; array of digits for i-o
@@ -15,7 +16,13 @@ input:  push dword digits   ; push param adr
         push dword 10       ; push param len
         call input_str      ; call subpr 
         add esp, 8          ; clear stack from 2 params
-        push eax            ; push adr param to stack
+        cmp dl, 10          ; check if break symbol was eoln
+        jz read             ; if so, go to read digits
+        push edx            ; else, push break char as param
+        call clear_line     ; call subpr (eat up input till eoln)
+        add esp, 4          ; and clear param from stack
+        jmp of              ; and then go to overflow
+read:   push eax            ; push adr param to stack
         push ecx            ; push length param to stack
         call read_num       ; call subpr (all params in place)
         add esp, 8          ; clear stack from 2 params

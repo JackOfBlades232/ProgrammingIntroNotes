@@ -1,12 +1,12 @@
 %include "../../stud_io.inc"
-global eat_input
+global clear_line
 
 section .text
 ; eat up input from line ( last char=[ebp+8] )
-eat_input:
+clear_line:
         push ebp            ; init stack frame
         mov ebp, esp
-        mov eax, [ebp+8]    ; put last char in eax
+        mov al, [ebp+8]     ; put last char in eax
 .lp:    cmp al, -1          ; check if eof
         jz .quit            ; if so, quit
         cmp al, 10          ; check if eoln
