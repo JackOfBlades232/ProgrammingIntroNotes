@@ -1,3 +1,4 @@
+%include "../../stud_io.inc"
 global read_num
 
 section .text
@@ -34,6 +35,9 @@ read_num:                   ; SUBPR START
         jmp .lp             ; else, repeat loop
 .err:   mov cl, 1           ; if it was an .error, put 1 in cl
 .quit:  pop ebx             ; restore ebx
+;add cl, '0'
+;PUTCHAR cl
+;sub cl, '0'
         pop esi             ; restore esi
         mov esp, ebp        ; deinit stack frame
         pop ebp
