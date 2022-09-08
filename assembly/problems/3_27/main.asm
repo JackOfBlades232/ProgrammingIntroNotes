@@ -69,6 +69,8 @@ sgn_rpn:
         push dword [edi-8]
         call apply_arifm    ; apply the calculation
         add esp, 12         ; and clear params from stack (last sign now clrd)
+        cmp cl, 0           ; check if arifm ended with error
+        jnz err             ; if so, raise error
         sub edi, 4          ; now, move edi pointer to first num
         mov [edi-4], eax    ; and put the result in place of first num
         jmp sgn_lp          ; and repeat sign loop
@@ -85,6 +87,8 @@ fin_rpn:
         push dword [edi-8]
         call apply_arifm    ; apply the calculation
         add esp, 12         ; and clear params from stack (last sign now clrd)
+        cmp cl, 0           ; check if arifm ended with error
+        jnz err             ; if so, raise error
         sub edi, 4          ; now, move edi pointer to first num
         mov [edi-4], eax    ; and put the result in place of first num
         jmp fin_rpn         ; and repeat inner loop
@@ -98,16 +102,6 @@ chk_eo: add esi, 4          ; check if rpn stack also reduced to one number
         jnz err             ; if not, raise error
         sub esi, 4  
         cmp esp, ebp        ; check if reached regular stack base
-push ebp
-sub [esp], esp
-push dword digits  
-call write_num    
-add esp, 8       
-push dword digits
-push ecx        
-call output_str
-add esp, 8    
-PUTCHAR 10   
         jl err              ; if not, raise error
         push dword [edi-4]  ; if all good, push final number to stack as param
         push dword digits   ; and adr for digits
