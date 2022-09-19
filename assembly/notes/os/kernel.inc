@@ -67,6 +67,6 @@
                 pop ebx
   %endif
 %else
-%error "Please define either OS_LINUX or OS_FREEBSD"
+  %error "Please define either OS_LINUX or OS_FREEBSD"
 %endif
 %endmacro
