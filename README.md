@@ -10,5 +10,5 @@ http://www.stolyarov.info/books/pdf/progintro_dmkv3.pdf -- volume 3 (C++ and oth
 http://www.stolyarov.info/books/pdf/progintro_taskbook.pdf -- problem book
 
 ## Disclaimer
-All the books and some of the solutions are in Russian, and unless someone someday undertakes the challenge of translating the books,
+All the books and some of the solutions are in Russian, and unless someone  undertakes the challenge of translating the books,
 unfortunately it will stay this way.
