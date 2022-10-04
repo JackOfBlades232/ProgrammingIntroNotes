@@ -1,3 +1,4 @@
+;; asmgreet/kernel.inc ;;
 %macro kernel 1-*
 %ifdef OS_FREEBSD
   %rep %0
