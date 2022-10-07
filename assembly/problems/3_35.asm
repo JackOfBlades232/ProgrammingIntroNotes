@@ -5,6 +5,10 @@ global _start
 extern strlen
 extern putstr
 
+section .data
+nl      db 10, 0                    ; new line string for output
+nl_len  equ $-nl
+
 section .text
 ; main code
 _start:
@@ -14,6 +18,7 @@ _start:
         xor ebp, ebp                ; will store max len in ebp
         mov esi, esp                ; next arg adr pointer will be in esi
         add esi, 8                  ; put it to first real arg
+        dec ebx                     ; also, decrease ebx to ignore pr name
 .again: pcall strlen, [esi]
         cmp eax, ebp
         jbe .inc
@@ -25,4 +30,5 @@ _start:
         je .out
         jmp .again
 .out:   pcall putstr, edi
+        kernel 4, 1, nl, nl_len     ; and new line after
 .quit:  kernel 1, 0
