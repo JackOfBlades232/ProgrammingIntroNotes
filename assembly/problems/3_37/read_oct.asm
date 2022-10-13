@@ -19,6 +19,7 @@ read_oct:
         sub cl, '0'             ; if digit, convert to number
         shl eax, 3              ; multiply eax by 8
         add eax, ecx            ; and add ecx to eax
+        inc esi
         jmp .again
 .quit:  pop esi
         mov esp, ebp
