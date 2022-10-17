@@ -1,5 +1,6 @@
 ;; 3_38/main.asm ;;
 %include "../useful_macros.inc"
+%include "conversion_macro.inc"
 
 global _start
 extern read_num
@@ -26,18 +27,7 @@ _start: cmp dword [esp], rq_argc    ; check if argc as required
         mov esi, esp                ; esi will point to next arg
         mov eax, [esi+8]            ; store both bases
         mov bl, [eax]
-        cmp bl, '0'                 ; decide if digit is valid and convert
-        jb .err
-        cmp bl, '9'
-        ja .check_A_1
-        sub bl, '0'
-        jmp .store_1
-.check_A_1:
-        cmp bl, 'A'
-        jb .err
-        cmp bl, 'Z'
-        ja .err
-        sub bl, 'A'-10              ; A stands for 10
+        char2num bl, .store_1, .err
 .store_1:
         mov byte [base_1], bl
         inc eax 
@@ -45,18 +35,7 @@ _start: cmp dword [esp], rq_argc    ; check if argc as required
         jnz .err 
         mov eax, [esi+12]              
         mov bl, [eax]
-        cmp bl, '0'    
-        jb .err
-        cmp bl, '9'
-        ja .check_A_2
-        sub bl, '0'
-        jmp .store_2
-.check_A_2:
-        cmp bl, 'A'
-        jb .err
-        cmp bl, 'Z'
-        ja .err
-        sub bl, 'A'-10              
+        char2num bl, .store_2, .err
 .store_2:
         mov byte [base_2], bl
         inc eax 

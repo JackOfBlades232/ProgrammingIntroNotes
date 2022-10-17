@@ -1,4 +1,5 @@
 ;; 3_38/write_num.asm ;;
+%include "conversion_macro.inc"
 global write_num
 
 section .data
@@ -26,12 +27,7 @@ write_num:
         push dword 0                ; push delimiter to stack
 .cacl_lp:    
         div ecx
-        cmp dl, 9
-        ja .conv_A
-        add edx, '0'
-        jmp .push
-.conv_A:
-        add edx, 'A'-10
+        num2char dl, .push          ; convert char to num
 .push:  push edx
         xor edx, edx
         cmp eax, 0

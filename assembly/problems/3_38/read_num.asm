@@ -1,4 +1,5 @@
 ;; 3_38/read_num.asm ;;
+%include "conversion_macro.inc"
 global read_num
 
 section .text
@@ -23,18 +24,7 @@ read_num:
 .again: mov cl, [esi]
         cmp cl, 0                   ; check if cl is #0, if so, finish loop
         jz .ok
-        cmp cl, '0'                 ; else, check & convert to would-be-number
-        jb .err
-        cmp cl, '9'
-        ja .conv_A
-        sub cl, '0'                 
-        jmp .calc
-.conv_A:
-        cmp cl, 'A'
-        jb .err
-        cmp cl, 'Z'
-        ja .err
-        sub cl, 'A'-10
+        char2num cl, .calc, .err    ; else, check & convert to would-be-number
         cmp cl, bl                  ; if digit exceeds max possible digit, err
         jae .err
 .calc:  mul ebx                     ; multiply by digit system base
