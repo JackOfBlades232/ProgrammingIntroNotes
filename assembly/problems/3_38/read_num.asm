@@ -1,5 +1,4 @@
 ;; 3_38/read_num.asm ;;
-%include "../../stud_io.inc"
 global read_num
 
 section .text
@@ -9,31 +8,44 @@ read_num:
         push ebp
         mov ebp, esp
         push esi                    ; will corrupt esi (traversing digits)
+        push ebx                    ; and ebx, with divisor
         mov esi, [ebp+8]            ; adr in esi
-        mov ecx, [ebp+12]           ; divisor in ecx
-        and ecx, 0x000000ff         ; apply mask (leave cl only)
-        cmp ecx, 2                  ; check if digit base between 2 and 35
+        mov ebx, [ebp+12]           ; divisor in ebx
+        and ebx, 0x000000ff         ; apply mask (leave cl only)
+        cmp ebx, 2                  ; check if digit base between 2 and 35
         jb .err
-        cmp ecx, 35
+        cmp ebx, 35
         ja .err
-        xor eax, eax 
-        cmp byte [esi], 0
-        jz .err                     ; at least one digit should exist
-.lp:    mul ecx 
-        xor edx, edx
-        mov dl, [esi]
-        sub dl, '0'
-        cmp edx, ecx                ; check if next digit > max possible
-        jae .err 
-        add eax, edx 
-        PUTCHAR al
-        inc esi 
-        cmp byte [esi], 0
-        jnz .lp
-        xor cl, cl                  ; if loop finished on #0 put 0 in exit code
+        cmp byte [esi], 0           ; check if string is empty
+        jz .err                     ; if so, error
+        xor eax, eax                ; prepare eax for number
+        xor ecx, ecx                ; and ecx for digit
+.again: mov cl, [esi]
+        cmp cl, 0                   ; check if cl is #0, if so, finish loop
+        jz .ok
+        cmp cl, '0'                 ; else, check & convert to would-be-number
+        jb .err
+        cmp cl, '9'
+        ja .conv_A
+        sub cl, '0'                 
+        jmp .calc
+.conv_A:
+        cmp cl, 'A'
+        jb .err
+        cmp cl, 'Z'
+        ja .err
+        sub cl, 'A'-10
+        cmp cl, bl                  ; if digit exceeds max possible digit, err
+        jae .err
+.calc:  mul ebx                     ; multiply by digit system base
+        add eax, ecx                ; and add ebx to eax
+        inc esi
+        jmp .again
+.ok:    xor cl, cl                  ; if loop finished on #0 put 0 in exit code
         jmp .quit
 .err:   mov cl, 1                   ; if ended on err jump, put 1 in exit code
-.quit:  pop esi
+.quit:  pop ebx
+        pop esi
         mov esp, ebp 
         pop ebp
         ret

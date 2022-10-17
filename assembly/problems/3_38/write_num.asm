@@ -26,8 +26,13 @@ write_num:
         push dword 0                ; push delimiter to stack
 .cacl_lp:    
         div ecx
+        cmp dl, 9
+        ja .conv_A
         add edx, '0'
-        push edx
+        jmp .push
+.conv_A:
+        add edx, 'A'-10
+.push:  push edx
         xor edx, edx
         cmp eax, 0
         jnz .cacl_lp

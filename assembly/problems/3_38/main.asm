@@ -26,14 +26,38 @@ _start: cmp dword [esp], rq_argc    ; check if argc as required
         mov esi, esp                ; esi will point to next arg
         mov eax, [esi+8]            ; store both bases
         mov bl, [eax]
+        cmp bl, '0'                 ; decide if digit is valid and convert
+        jb .err
+        cmp bl, '9'
+        ja .check_A_1
         sub bl, '0'
+        jmp .store_1
+.check_A_1:
+        cmp bl, 'A'
+        jb .err
+        cmp bl, 'Z'
+        ja .err
+        sub bl, 'A'-10              ; A stands for 10
+.store_1:
         mov byte [base_1], bl
         inc eax 
         cmp byte [eax], 0           ; if base arg is longer than 1 char, error
         jnz .err 
         mov eax, [esi+12]              
         mov bl, [eax]
+        cmp bl, '0'    
+        jb .err
+        cmp bl, '9'
+        ja .check_A_2
         sub bl, '0'
+        jmp .store_2
+.check_A_2:
+        cmp bl, 'A'
+        jb .err
+        cmp bl, 'Z'
+        ja .err
+        sub bl, 'A'-10              
+.store_2:
         mov byte [base_2], bl
         inc eax 
         cmp byte [eax], 0           ; if base arg is longer than 1 char, error
@@ -45,8 +69,8 @@ _start: cmp dword [esp], rq_argc    ; check if argc as required
         pcall write_num, [number], digits, [base_2]
         test cl, cl                 
         jnz .err
-;        pcall putstr, digits
-;        kernel 4, 1, nl_msg, nl_len
+        pcall putstr, digits
+        kernel 4, 1, nl_msg, nl_len
         jmp .quit
 .err:   kernel 1, 1
 .quit:  kernel 1, 0
