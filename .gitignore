@@ -9,6 +9,8 @@
 !solutions.txt
 !input_*.txt
 
+*.lst
+
 *.o
 *.a
 *.so
