@@ -10,6 +10,7 @@
 !input_*.txt
 
 *.lst
+*.dat
 
 *.o
 *.a
