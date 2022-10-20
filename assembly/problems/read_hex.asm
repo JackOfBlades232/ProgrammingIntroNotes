@@ -1,10 +1,10 @@
 ;; read_hex.asm ;;
-global read_oct
+global read_hex
 
 section .text
 ; proc read_hex : read hex bumber from digits in mem to number
 ; adr == [ebp+8] : number->eax, break char->cl
-read_oct:
+read_hex:
         push ebp
         mov ebp, esp
         push esi                ; will corrupt esi
