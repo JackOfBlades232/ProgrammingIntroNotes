@@ -1,16 +1,16 @@
-;; write_float.asm ;;
+;; 3_44/write_float.asm ;;
 global write_float
 
 section .data
-ten     dt 10.0
-thenth  dt 0.01
+ten     dq 10.0
+tenth   dq 0.01
 
 section .bss
-number  rest 1                  ; saving off the params
+number  resq 1                  ; saving off the params
 address resd 1
 lenght  resd 1
-dcm_ord rest 1                  ; decimal order of the number
-buffer  resb 64                 ; digits for decimal mantis
+dcm_ord resq 1                  ; decimal order of the number
+buffer  resb 53                 ; digits for decimal mantis
 
 section .text
 ; proc write_float : writes a floating number as a decimal fraction to mem
@@ -22,7 +22,7 @@ write_float:
         or word [esp], 0000010000000000b    ; works if prev was 11, must
         fldcw [esp]
         add esp, 4
-        fst tword [number]
+        fst qword [number]
         mov [address], eax
         mov [lenght], ecx
         ; first, calculate lg10(number), to find decimal order
@@ -30,25 +30,25 @@ write_float:
         fxch                     
         ; TODO : introduce case where st0 close to one (with fyl2xp1)
         fyl2x                   ; calc log10(st0)
-        fistp tword [dcm_ord]   ; floor and store the decimal order
+        fistp qword [dcm_ord]   ; floor and store the decimal order
         ; now, construct 1/10**ord
         mov ecx, [dcm_ord]
-        cmp tword [dcm_ord], 0
+        cmp dword [dcm_ord], 0  ; order cant be too high, so dword will do
         jl .neg_ord
-        fld tword [tenth]       ; if ord >= 0, we will calc 0.01**ord
+        fld qword [tenth]       ; if ord >= 0, we will calc 0.01**ord
 .tenth_lp:
-        fmul tword [tenth]
+        fmul qword [tenth]
         loop .tenth_lp        
         jmp .calc_dcm_mantis
 .neg_ord:
-        fld tword [ten]         ; else, 10.0**(-ord)
+        fld qword [ten]         ; else, 10.0**(-ord)
         neg ecx
 .ten_lp:
-        fmul tword [ten]
+        fmul qword [ten]
         loop .ten_lp
 .calc_dcm_mantis:
         ; now, multiply the number by 1/10**ord to get decimal mantis
-        fld tword [number]
+        fld qword [number]
         fmulp                   ; multiply st0 and st1, remove them, res->st0
         ; now, we have decimal order stored and decimal mantis in st0
 ; testing : put ord number of @ in [eax] (not more than ecx) 
