@@ -3,15 +3,14 @@
 
 global _start
 extern write_float
-extern putstr
 
 section .data
-number  dq 342.12
+number  dq 11.0121
 nl      db 10, 0
 nl_ln   equ $-nl
 
 section .bss
-dgts    resb 19
+dgts    resb 30
 dgts_ln equ $-dgts
 
 section .text
