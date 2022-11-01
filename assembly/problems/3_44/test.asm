@@ -5,7 +5,7 @@ global _start
 extern write_float
 
 section .data
-numbers dq 3.14, 1123.992929, -0.0001, 99.9999, 12.121234, -444.444444444444444
+numbers dq 3.14, 1123.992, -0.0001, 99.999, 12.12234, -444.444444444444444, 0.0
 num_ln  equ ($-numbers)/8
 nl      db 10, 0
 nl_ln   equ $-nl
