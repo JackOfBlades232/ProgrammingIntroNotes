@@ -9,8 +9,8 @@ write_uns:                  ; SUBPR START
         mov ebp, esp
         push edi            
         push ebx           
-        mov eax, [ebp+8]   ; mov number to eax 
-        mov edi, [ebp+12]    ; mov address to edi
+        mov eax, [ebp+8]    ; mov number to eax 
+        mov edi, [ebp+12]   ; mov address to edi
         mov ebx, 10         ; put divisor in ebx
         xor ecx, ecx        
 .stack_lp:
