@@ -1,4 +1,4 @@
-;; 3_45/test.asm ;;
+;; 3_45/main ;;
 %include "../useful_macros.inc"
 
 global _start
