@@ -27,7 +27,7 @@ read_uns:
         sub cl, '0'
         add eax, ecx
 
-        inc [esi]
+        inc esi
         cmp byte [esi], bl
         jz .ok
         cmp byte [esi], '0'

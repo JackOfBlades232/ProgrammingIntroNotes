@@ -28,7 +28,7 @@
   %%q:          add esp, %0 * 4     ; clear stack
                 popf
                 popa
-%elifdef OS_LINUX
+%else ; assuming it is linux
                 pusha
                 pushf
   %if %0 > 1
@@ -86,8 +86,6 @@
                 popf
                 popa
   %endif
-%else
-  %error "Please define either OS_LINUX or OS_FREEBSD"
 %endif
 %endmacro
 

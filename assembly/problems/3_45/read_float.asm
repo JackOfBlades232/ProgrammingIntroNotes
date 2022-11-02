@@ -13,11 +13,18 @@ section .text
 ; proc read float : reads floating point number from decimal frac (#0 delim)
 ; address==eax : number->st0, success_code->eax
 read_float:
-        push edi
-        mov edi, eax
+        push esi
+        push ebx
+        mov esi, eax
+        xor bl, bl
+
+        cmp byte [esi], '-'
+        jnz .int
+        inc esi
+        mov bl, 1
         
-        push dword '.'
-        push eax
+.int    push dword '.'
+        push esi
         call read_uns
         add esp, 8
         cmp cl, 0
@@ -26,16 +33,16 @@ read_float:
         fild dword [int_prt]
 
 .skip_lp:
-        inc edi
-        cmp byte [edi], 0
+        inc esi
+        cmp byte [esi], 0
         jnz .skip_lp
-        dec edi
+        dec esi
 
         fldz
         xor ecx, ecx
 
 .frac_lp:
-        mov cl, [edi]
+        mov cl, [esi]
         cmp cl, '.'
         jz .fin_add
         cmp cl, '0'
@@ -47,15 +54,26 @@ read_float:
         mov [digit], cl
         fild dword [digit]
         faddp st1, st0
-        fmul st0, qword [tenth]
+        fmul qword [tenth]
 
+        dec esi
         jmp .frac_lp
 
 .fin_add:
         faddp st1, st0
+
+        test bl, bl
+        jz .set_ok_code
+        fldz                            ; if neg, replace number with 0-number
+        fxch
+        fsubp st1, st0
+
+.set_ok_code:
         xor eax, eax
         jmp .quit
 
 .err:   mov eax, 1
 
-.quit:  pop edi
+.quit:  pop ebx
+        pop esi
+        ret
