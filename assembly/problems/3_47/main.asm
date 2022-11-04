@@ -1,4 +1,8 @@
 ;; 3_47/main.asm ;;
+        ; TODO : now, we cant hadle more that 8 tings in rpn stack (even 7)
+        ;   need to fix this by using another mem stack
+        ; TODO : implement unary minuses transformation
+        ; TODO : implement space ignoring
 %include "../useful_macros.inc"
 
 global _start
@@ -46,9 +50,7 @@ sg_stck resb 256                ; stack for Dijkstra alg sign stack
 section .text
         ; first, preparations
 _start: finit
-        ; TODO : now, we cant hadle more that 8 tings in rpn stack (even 7)
-        ;   need to fix this by using another mem stack
-        ; TODO : implement unary minuses transformation
+
         ; now, read input to expression buffer
         kernel 3, 0, exp_buf, buf_ln
         cmp eax, 0
