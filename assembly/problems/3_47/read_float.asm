@@ -13,7 +13,7 @@ section .text
 ; proc read float : reads floating point number from decimal frac (#0 delim)
 ; address==eax : number->st0, break char->al, empty code->ah, error code->cl
 read_float:
-        ; save off non-cdeal regs, no stack frame required
+        ; save off non-cdecl regs, no stack frame required
         push esi                    ; adr in esi (traversing digits)
         push ebx                    ; neg flag in bl
         mov esi, eax
@@ -56,7 +56,8 @@ read_float:
         ja .reached_break
         jmp .skip_lp
 
-        push dword [esi]            ; save off break char to stack
+.reached_break:
+        push eax                    ; save off break char to stack
         dec esi
 
         ; set fractional part accumulator in st0 to 0
@@ -65,14 +66,10 @@ read_float:
 
         ; here, loop through digits until . (in reverse), accum frac part
 .frac_lp:
-        ; first, check if next (reverse) digit is . or illegal
+        ; first, check if next (reverse) digit is . (can't be illegal, checked)
         mov al, [esi]
         cmp al, '.'
         jz .fin_add
-        cmp al, '0'
-        jb .err
-        cmp al, '9'
-        ja .err
         sub al, '0'                 ; conv al to digit from char
 
         ; push digit to f-stack and calc (x + digit)/10
@@ -99,18 +96,18 @@ read_float:
         ; if not jmp to err/empty, set err code (cl) and empty code (ah) to 0
 .set_ok_code:
         mov al, [esp]               ; break char was on top of stack
-        pop edx
+        add esp, 4
         xor cl, cl
         xor ah, ah
         jmp .quit
 
         ; if jumped to empty, set err code to 0 and empty code to 1 (br in al)
-        xor cl, cl
+.empty: xor cl, cl
         mov ah, 1
         jmp .quit
 
         ; if error, 1 to error code
-.err:   pop edx                     ; break char was on top of stack
+.err:   add esp, 4                  ; break char was on top of stack
         mov cl, 1
 
         ; and restore all regs
