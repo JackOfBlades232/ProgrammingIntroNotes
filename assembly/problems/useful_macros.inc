@@ -12,8 +12,6 @@
 ; making syscall in 1 line
 %macro kernel 1-*
 %ifdef OS_FREEBSD
-                pusha
-                pushf
   %rep %0
     %rotate -1
                 push dword %1
@@ -26,11 +24,7 @@
                 jmp short %%q
   %%ok:         xor ecx, ecx        ; else, zero out ecx
   %%q:          add esp, %0 * 4     ; clear stack
-                popf
-                popa
 %else ; assuming it is linux
-                pusha
-                pushf
   %if %0 > 1
                 push ebx
     %if %0 > 4
@@ -83,8 +77,6 @@
                 pop esi
     %endif
                 pop ebx
-                popf
-                popa
   %endif
 %endif
 %endmacro

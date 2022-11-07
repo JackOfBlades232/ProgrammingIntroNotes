@@ -25,6 +25,11 @@ apply_arifm:
 .chk_div:
         cmp al, '/'
         jnz .err
+        fldz                    ; with division, raise error if dividing by 0
+        fcomp
+        fstsw ax
+        sahf
+        jz .err
         fdivp st1, st0
 
 .ok:    xor cl, cl

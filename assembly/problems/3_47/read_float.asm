@@ -1,4 +1,5 @@
 ;; 3_45/read_float.asm ;;
+%include "../useful_macros.inc"
 global read_float
 extern read_uns
 
@@ -42,7 +43,7 @@ read_float:
         push esi
         call read_uns
         add esp, 8
-        cmp ah, 0
+        cmp cl, 0
         jnz .err
         mov [int_prt], eax
         fild dword [int_prt]
@@ -63,7 +64,6 @@ read_float:
 .reached_break:
         push eax                    ; save off break char to stack
         dec esi
-        dec edi
 
         ; set fractional part accumulator in st0 to 0
         fldz
@@ -107,8 +107,7 @@ read_float:
         jmp .quit
 
         ; if error, 1 to error code
-.err:   add esp, 4                  ; break char was on top of stack
-        mov ah, 1
+.err:   mov ah, 1
 
         ; and restore all regs
 .quit:  mov ecx, edi                ; char num goes to edi
