@@ -17,29 +17,18 @@ read_float:
         ; save off non-cdeah regs, no stack frame required
         push esi                    ; adr in esi (traversing digits)
         push edi                    ; chr cnt in edi
-        push ebx                    ; neg flag in bl
         mov esi, eax
         mov edi, 1                  ; accounting for break char
-        xor bl, bl
 
         ; first, check if number is empty (only break char exists)
         mov al, [esi]
-        cmp al, '@'
-        jz .unary_minus
         cmp al, '0'
         jb .ok
         cmp al, '9'
         ja .ok
-        jmp .int
-
-        ; if first sign is @ (code for unary -), remove it and set neg flag
-.unary_minus:
-        inc esi
-        inc edi
-        mov bl, 1
         
         ; first, read digits until . as an unsigned int (whole part), with subp
-.int:   push dword '.'
+        push dword '.'
         push esi
         call read_uns
         add esp, 8
@@ -91,15 +80,7 @@ read_float:
 .fin_add:
         faddp st1, st0
 
-        ; if neg flag set, negate the result
-        test bl, bl
-        jz .restore_break_chr
-        fldz                        ; if neg, replace number with 0-number
-        fxch
-        fsubp st1, st0
-
         ; if not jmp to err.ok, set err code (ah) and.ok code (ah) to 0
-.restore_break_chr:
         pop eax                     ; break char was on top of stack
         
         ; if not jumped to err, set err code to 0,.ok code to 1 (br in al)
@@ -111,7 +92,6 @@ read_float:
 
         ; and restore all regs
 .quit:  mov ecx, edi                ; char num goes to edi
-        pop ebx
         pop edi
         pop esi
         ret
