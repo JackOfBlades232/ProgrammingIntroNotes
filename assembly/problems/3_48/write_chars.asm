@@ -1,5 +1,4 @@
 ;; 3_48/write_chars.asm ;;
-%include "../useful_macros.inc"
 global write_chars
 
 section .bss
@@ -13,21 +12,30 @@ write_chars:
         push ebp
         mov ebp, esp
 
+        push ebx
+
         mov al, [ebp+16]
         mov ecx, [ebp+12]
 
         cmp ecx, bufsize
-        jg .err
+        ja .err
         
 .lp:    mov [buffer+ecx-1], al
         loop .lp
 
-        kernel 3, [ebp+8], buffer, [ebp+12]
+        mov eax, 4
+        mov ebx, [ebp+8]
+        mov ecx, buffer
+        mov edx, [ebp+12]
+        int 80h
+
         xor eax, eax
         jmp .quit
 
 .err:   mov eax, 1
 
-.quit:  mov esp, ebp
+.quit:  pop ebx
+
+        mov esp, ebp
         pop ebp
         ret

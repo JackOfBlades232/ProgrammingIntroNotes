@@ -10,11 +10,15 @@ section .text
 ;   steps from min to max (or gives error code), and pops max from stack
 ; step==st2, min==st1, max==st0 : #steps/errcode->eax, step->st1, min->st0
 calc_number_of_reps:
-        ficom st1
-        jbe .err
+        fcom st1
+        fstsw ax
+        sahf
+        jb .err
         fldz
-        ficomp st3
-        jge .err
+        fcomp st3
+        fstsw ax
+        sahf
+        jae .err
 
         ; set rounding to smaller number (temporary)
         fstenv [cr_save]
@@ -24,7 +28,7 @@ calc_number_of_reps:
         fldcw [esp]             
         add esp, 4
         
-        fsub
+        fsub st1
         fdiv st2
         fistp dword [steps]
 
