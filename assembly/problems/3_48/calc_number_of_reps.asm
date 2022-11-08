@@ -21,9 +21,9 @@ calc_number_of_reps:
         jae .err
 
         ; set rounding to smaller number (temporary)
-        fstenv [cr_save]
         sub esp, 4
         fstcw [esp]
+        push dword [esp]
         or word [esp],  0000010000000000b
         fldcw [esp]             
         add esp, 4
@@ -35,7 +35,8 @@ calc_number_of_reps:
         mov eax, [steps]
         inc eax                 ; we rounded to lower, add one arbitr rep
 
-        fldenv [cr_save]
+        fldcw [esp]
+        add esp, 4
 
         jmp .quit
 

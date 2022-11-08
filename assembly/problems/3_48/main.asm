@@ -151,15 +151,13 @@ _start: cmp dword [esp], 5          ; must be cli args: file name,
 
         ; main cycle: calc trig funcs and output
 .again: write_horiz_line [line_ch], line_ln, [fd]
-
         ; calc all 4 trig funcs (are in reverse in stack), and output them
         call trig
 
-        fxch st4                    ; angle to top, ctan to st4
+        fld st4                     ; angle to top
         write_float_elem dgts, dgts_ln, pref, pref_ln, [fd]
-
-        fxch st2                    ; sin to top, tan to st2
-        mov ebx, 4                  ; now, empty stack to file (4 numbers)
+        
+        mov ebx, 4                  ; now, empty stack to file (5 numbers)
 .line_lp:
         write_float_elem dgts, dgts_ln, sep, sep_ln, [fd]
         dec ebx
@@ -168,6 +166,17 @@ _start: cmp dword [esp], 5          ; must be cli args: file name,
 
         call_write_str suf, suf_ln, [fd]
         call_write_nl [fd]
+
+        ; now, increment angle
+        fadd st1
+
+        ; and check if reps left to continue/break
+        dec dword [reps]
+        cmp dword [reps], 0
+        jnz .again
+
+        ; finally, cap off with line
+        write_horiz_line [line_ch], line_ln, [fd]
 
         ; if all ok, 0 in exit code, else 1
 .ok:    mov ebx, 0

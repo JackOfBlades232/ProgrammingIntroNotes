@@ -8,12 +8,15 @@ ten   dq 10.0
 section .bss
 number  resd 1
 whole   resd 1
+cr_save resb 28
 
 section .text
 ; proc write_float : writes a floating number as a decimal fraction to mem
 ; number==st0, address==eax, mem_length==ecx : digits->address, len->eax
 write_float:
         ; prep
+        fstenv [cr_save]
+        fld st0
         push edi                        ; nex digit adr will be in edi
         push esi                        ; mem left will be in esi
         push ebx                        ; flag "has reached ." in bl
@@ -44,6 +47,10 @@ write_float:
 .again: fist dword [whole]              ; convert to int and store back as flt
         fild dword [whole]
 
+        ; subtract whole part that we saved and multiply by 10
+        fsubp st1, st0
+        fmul qword [ten]
+
         ; use subpr to write integer part to mem as digits
         push esi                        
         push edi
@@ -56,7 +63,6 @@ write_float:
         jnz .upd_cnt
         cmp ecx, esi
         jnz .upd_cnt
-        pop eax                         ; have to pop len here, cause will skip
         jmp .quit                       ; the place where it is popped
 
         ; update mem left, offset edi, put '.' and update flag if necessary
@@ -71,23 +77,18 @@ write_float:
 .set_esi:
         sub esi, ecx                    ; if out of mem, go to rm trail zeroes
         cmp esi, 0
-        jz .rest_eax
-
-        ; subtract whole part that we saved and multiply by 10
-        fsubp st1, st0
-        fmul qword [ten]
+        jz .quit
 
         ; and repeat
         jmp .again
-        
-        ; restore mem len to eax
-.rest_eax:
-        pop eax
 
         ; finally, put delimiting 0 and restore corrupted regs (no stack frame)
 .quit:  mov byte [edi], 0
+        pop eax
+        fstp st0
         pop ebx
         pop esi
         pop edi
+        fldenv [cr_save]
         ; quit
         ret

@@ -9,8 +9,8 @@ section .text
 ; number==st0 : res->st0 (not popping number)
 deg2rad:
         fldpi
-        fmul
-        fild qword [hlf_cir]
-        fdivp
+        fmul st1
+        fld qword [hlf_cir]
+        fdivp st1, st0
 
         ret
