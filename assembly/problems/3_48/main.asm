@@ -76,6 +76,7 @@ fd      resd 1
 dgts    resb 19
 dgts_ln equ $-dgts
 reps    resd 1
+incr    resq 1
 
 section .data
 pref    db "| "
@@ -123,6 +124,10 @@ _start: cmp dword [esp], 5          ; must be cli args: file name,
         jz .err
         mov [reps], eax
 
+        ; save off increment and remove it from stack
+        fxch st1
+        fstp qword [incr] 
+
         ; header
         write_horiz_line [line_ch], line_ln, [fd]
 
@@ -168,7 +173,7 @@ _start: cmp dword [esp], 5          ; must be cli args: file name,
         call_write_nl [fd]
 
         ; now, increment angle
-        fadd st1
+        fadd qword [incr]
 
         ; and check if reps left to continue/break
         dec dword [reps]
