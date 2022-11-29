@@ -53,5 +53,26 @@ int main()
             break;
     }
 
+    goto quit; /* can go to any label inside the function,
+                  even into/out of {} */
+
+    /* goes to the given label (case of i, or default), and will do everything 
+     * till the end of switch. Remedied via break. Case vals must be compile-
+     * time consts */
+    switch (i) {
+        case 1:
+            printf("First\n");
+        case 2:
+            printf("Second\n");
+            break;
+        case 3:
+            printf("Third\n");
+        default:
+            printf("More\n");
+    }
+    /* can also goto to exit switch, instead of break, or continue, if is in 
+     * loop, or return to quit function */
+
+quit:
     return 0;
 }
