@@ -1,0 +1,3 @@
+lvalue -- what can be stored left of a =. Meaning, that one step before getting
+it's value the address is calculated, so one can instead put a value in that
+address. Like arr[i] = x. Other ones, like x+1 -- are rvalues
