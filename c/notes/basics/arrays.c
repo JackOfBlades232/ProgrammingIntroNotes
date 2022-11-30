@@ -1,9 +1,17 @@
+#include <stdio.h>
+
 int main()
 {
     int m[20]; /* really not an array, can only access elements, m is actually
                   int* */
     int *p;
     int size, diff;
+
+    /* can init array with compile-time consts, 
+     * then specifying size is optional */
+    int primes[] = { 2, 3, 5, 7, 11, 13, 17, 19, 21, 23 };
+    /* when initting arrays locally, vals will be copied to stack on every call,
+     * so be cautious. When array is global, it just goes to .data */
 
     p = m; /* legitimate, they are really of one type */
 
@@ -23,4 +31,8 @@ int main()
 
     p = &m[13];
     diff = p - m; /* will be integer -- 13 */
+
+    /* how to calc len of initialized arr: */
+    for (int i = 0; i < sizeof(primes)/sizeof(*primes); i++)
+        printf("[%d] = %d\n", i, primes[i]);
 }
