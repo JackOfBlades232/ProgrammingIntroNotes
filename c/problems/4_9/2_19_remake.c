@@ -29,19 +29,19 @@ static int is_start_of_word(char c, char prev_c)
     return !char_is_space(c) && char_is_space(prev_c);
 }
 
-void count_words_of_two_types(int *odd_cnt, int *even_cnt,
+void count_words_of_two_types(int *f_cnt, int *s_cnt,
         void (*choose_inc_cnt_ptr) (int, int *, int *))
 {
     char c, prev_c;
     int word_len;
 
-    *odd_cnt = 0;
-    *even_cnt = 0;
+    *f_cnt = 0;
+    *s_cnt = 0;
     word_len = 0;
     prev_c = ' ';
     while ((c = getchar()) != EOF) {
         if (is_end_of_word(c, prev_c)) {
-            (*choose_inc_cnt_ptr)(word_len, odd_cnt, even_cnt);
+            (*choose_inc_cnt_ptr)(word_len, f_cnt, s_cnt);
             word_len = 0;
         }
         else if (!char_is_space(c))
@@ -51,7 +51,7 @@ void count_words_of_two_types(int *odd_cnt, int *even_cnt,
     }
 
     if (!char_is_space(prev_c)) 
-        (*choose_inc_cnt_ptr)(word_len, odd_cnt, even_cnt);
+        (*choose_inc_cnt_ptr)(word_len, f_cnt, s_cnt);
 }
 
 /* a) */
