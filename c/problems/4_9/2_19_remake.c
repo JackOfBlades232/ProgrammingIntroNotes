@@ -92,14 +92,15 @@ void choose_inc_cnt_bounded(int word_len, int *more_than_seven_cnt,
 }
 
 /* d) */
-int word_ended_and_az(char c, char prev_c, char start_c)
+static int word_ended_and_az(char c, char prev_c, char start_c)
 {
     return is_end_of_word(c, prev_c) && start_c == 'A' && prev_c == 'z';
 }
 
-int final_word_ended_and_az(char c, char prev_c, char start_c)
+static int final_word_ended_and_az(char c, char prev_c, char start_c)
 {
-    return (!char_is_wordbreak(prev_c) && word_ended_and_az(' ', prev_c, start_c));
+    return !char_is_wordbreak(prev_c) &&
+        word_ended_and_az(' ', prev_c, start_c);
 }
 
 int count_words_az()
@@ -121,7 +122,7 @@ int count_words_az()
 }
 
 /* e) */
-void update_min_max_cnt(int *word_len, int *cnt, int *min, int *max)
+static void update_min_max_cnt(int *word_len, int *cnt, int *min, int *max)
 {
     update_min_val(*word_len, min);
     update_max_val(*word_len, max);
@@ -153,7 +154,7 @@ void count_min_max(int *cnt, int *min, int *max)
 }
 
 /* f) */
-int is_end_of_space_seq(char c, char prev_c)
+static int is_end_of_space_seq(char c, char prev_c)
 {
     return c != ' ' && prev_c == ' ';
 }
