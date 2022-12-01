@@ -1,5 +1,6 @@
 /* 4_9/2_19_remake.c */
 #include <stdio.h>
+#include <limits.h>
 
 /* general functions */
 static void update_max_val(int new_val, int *max_val)
@@ -10,23 +11,23 @@ static void update_max_val(int new_val, int *max_val)
 
 static void update_min_val(int new_val, int *min_val)
 {
-    if (new_val > *min_val)
+    if (new_val < *min_val)
         *min_val = new_val;
 }
 
-static int char_is_space(char c)
+static int char_is_wordbreak(char c)
 {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
 static int is_end_of_word(char c, char prev_c)
 {
-    return char_is_space(c) && !char_is_space(prev_c);
+    return char_is_wordbreak(c) && !char_is_wordbreak(prev_c);
 }
 
 static int is_start_of_word(char c, char prev_c)
 {
-    return !char_is_space(c) && char_is_space(prev_c);
+    return !char_is_wordbreak(c) && char_is_wordbreak(prev_c);
 }
 
 void count_words_of_two_types(int *f_cnt, int *s_cnt,
@@ -44,13 +45,13 @@ void count_words_of_two_types(int *f_cnt, int *s_cnt,
             (*choose_inc_cnt_ptr)(word_len, f_cnt, s_cnt);
             word_len = 0;
         }
-        else if (!char_is_space(c))
+        else if (!char_is_wordbreak(c))
             word_len++;
             
         prev_c = c;
     }
 
-    if (!char_is_space(prev_c)) 
+    if (!char_is_wordbreak(prev_c)) 
         (*choose_inc_cnt_ptr)(word_len, f_cnt, s_cnt);
 }
 
@@ -68,7 +69,7 @@ int count_words()
         prev_c = c;
     }
 
-    return cnt + (char_is_space(prev_c) ? 0 : 1);
+    return cnt + (char_is_wordbreak(prev_c) ? 0 : 1);
 }
 
 /* b) */
@@ -98,7 +99,7 @@ int word_ended_and_az(char c, char prev_c, char start_c)
 
 int final_word_ended_and_az(char c, char prev_c, char start_c)
 {
-    return (!char_is_space(prev_c) && word_ended_and_az(' ', prev_c, start_c));
+    return (!char_is_wordbreak(prev_c) && word_ended_and_az(' ', prev_c, start_c));
 }
 
 int count_words_az()
@@ -119,10 +120,119 @@ int count_words_az()
     return cnt + (final_word_ended_and_az(c, prev_c, start_c) ? 1 : 0);
 }
 
+/* e) */
+void update_min_max_cnt(int *word_len, int *cnt, int *min, int *max)
+{
+    update_min_val(*word_len, min);
+    update_max_val(*word_len, max);
+    (*cnt)++;
+    *word_len = 0;
+}
+
+void count_min_max(int *cnt, int *min, int *max)
+{
+    char c, prev_c;
+    int word_len;
+
+    *cnt = 0;
+    *min = INT_MAX;
+    *max = 0;
+    word_len = 0;
+    prev_c = ' ';
+    while ((c = getchar()) != EOF) {
+        if (is_end_of_word(c, prev_c)) 
+            update_min_max_cnt(&word_len, cnt, min, max);
+        else if (!char_is_wordbreak(c))
+            word_len++;
+            
+        prev_c = c;
+    }
+
+    if (!char_is_wordbreak(prev_c)) 
+        update_min_max_cnt(&word_len, cnt, min, max);
+}
+
+/* f) */
+int is_end_of_space_seq(char c, char prev_c)
+{
+    return c != ' ' && prev_c == ' ';
+}
+
+void count_max_word_and_space_seq(int *m_wrd, int *m_spc)
+{
+    char c, prev_c;
+    int word_len, spaces_len;
+
+    *m_wrd = 0;
+    *m_spc = 0;
+    word_len = 0;
+    spaces_len = 0;
+    prev_c = ' ';
+    while ((c = getchar()) != EOF) {
+        if (is_end_of_word(c, prev_c)) {
+            update_max_val(word_len, m_wrd);
+            word_len = 0;
+        }
+        else if (!char_is_wordbreak(c))
+            word_len++;
+        
+        if (is_end_of_space_seq(c, prev_c)) {
+            update_max_val(spaces_len, m_spc);
+            spaces_len = 0;
+        }
+        else if (c == ' ')
+            spaces_len++;
+            
+        prev_c = c;
+    }
+
+    if (!char_is_wordbreak(prev_c)) 
+        update_max_val(word_len, m_wrd);
+    else if (prev_c == ' ')
+        update_max_val(spaces_len, m_spc);
+}
+
+/* g) */
+int check_bracket_balance()
+{
+    char c;
+    int balance;
+
+    balance = 0;
+    while ((c = getchar()) != EOF) {
+        if (c == '(')
+            balance++;
+        else if (c == ')')
+            balance--;
+
+        if (balance < 0)
+            return 0;
+    }
+
+    return balance == 0;
+}
+
+/* h) */
+int count_bracket_pairs()
+{
+    int cnt;
+    char c, prev_c;
+
+    prev_c = '\0';
+    while ((c = getchar()) != EOF) {
+        if (c == ')' && prev_c == '(')
+            cnt++;
+        prev_c = c;
+    }
+
+    return cnt;
+}
+
+
 int main()
 {
     char c;
-    int f_cnt, s_cnt;
+    int cnt, f_cnt, s_cnt;
 
     printf("Input subproblem letter: ");
     scanf("%c", &c);
@@ -142,6 +252,21 @@ int main()
         case 'd':
             printf("Num words starting with 'A' and ending with 'z': %d\n",
                     count_words_az());
+            break;
+        case 'e':
+            count_min_max(&cnt, &f_cnt, &s_cnt);
+            printf("Num words: %d, shortest wrod len: %d, "
+                    "longest word len: %d\n", cnt, f_cnt, s_cnt);
+            break;
+        case 'f':
+            count_max_word_and_space_seq(&f_cnt, &s_cnt);
+            printf("Max word len: %d, Max space seq len: %d\n", f_cnt, s_cnt);
+            break;
+        case 'g':
+            printf(check_bracket_balance() ? "YES\n" : "NO\n");
+            break;
+        case 'h':
+            printf("Num bracket pairs: %d\n", count_bracket_pairs());
             break;
         default:
             fprintf(stderr, "Invalid subproblem letter, input a-h\n");
