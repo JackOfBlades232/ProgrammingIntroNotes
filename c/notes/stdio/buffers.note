@@ -1,0 +1,9 @@
+All input-output works like this: a buffer is created (for stdio -- on c lib
+level), and each time one reaches for a value, the buffer is filled up, and 
+then we can getchar() one int from the buffer, thus saving us precious syscalls
+
+With output you also write to buffer, and when certin conditions are met, it is
+flushed to the destination.
+
+Buffers are flushed when full, when program terminated correctly. If working
+with terminal, also flushed when \n or when encountering input.
