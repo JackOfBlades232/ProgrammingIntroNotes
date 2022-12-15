@@ -32,3 +32,10 @@ b) "   Hello"
 c) "Hello   "
 d) "Hell"
 e) "  Hell"
+
+4.15
+*(p+1): double, =2.5
+3[p] (=*(3+p)): double, =3.5 
+
+4.16
+char, 65
