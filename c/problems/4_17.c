@@ -1,5 +1,5 @@
-/* 4_16.c */
-/* #define RECURSION 1 */
+/* 4_17.c */
+#define RECURSION 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,36 +37,11 @@ item *int_array_to_list(const int *arr, int len)
 #endif
 }
 
-#if RECURSION
-item *list_to_list_with_len(const item *lst, item *first)
-{
-    item *tmp;
-
-    if (!first) {
-        first = malloc(sizeof(item));
-        first->data = 0;
-        first->next = NULL;
-    }
-
-    if (!lst)
-        return NULL;
-
-    tmp = malloc(sizeof(item));
-    tmp->data = lst->data;
-    tmp->next = list_to_list_with_len(lst->next, first);
-
-    first->data++;
-    if (!first->next)
-        first->next = tmp;
-
-    return first;
-}
-#else
 item *list_to_list_with_len(const item *lst)
 {
-    item *first = NULL, *last = NULL, *tmp;
+    item *first, *last = NULL, *tmp;
 
-    first = malloc(sizeof(item));
+    last = first = malloc(sizeof(item));
     first->data = 0;
     first->next = NULL;
 
@@ -75,15 +50,41 @@ item *list_to_list_with_len(const item *lst)
         tmp->data = lst->data;
         tmp->next = NULL;
 
-        first->data++;
+        (first->data)++;
+
         last->next = tmp;
+        last = last->next;
     }
 
     return first;
 }
+
+void print_int_list(const item *lst)
+{
+#if RECURSION
+    if (lst) {
+        printf("%d ", lst->data);
+        print_int_list(lst->next);
+    } else 
+        putchar('\n');
+#else
+    for (; lst; lst = lst->next) 
+        printf("%d ", lst->data);
+    putchar('\n');
 #endif
+}
 
 int main()
 {
+    int arr[] = { 3, 1, 2, 3, 3, 1, 2, 12, 128, -14 };
+    item *lst, *new_lst = NULL;
+
+    lst = int_array_to_list(arr, sizeof(arr)/sizeof(int));
+    print_int_list(lst);
+
+    new_lst = list_to_list_with_len(lst);
+
+    print_int_list(new_lst);
+
     return 0;
 }
