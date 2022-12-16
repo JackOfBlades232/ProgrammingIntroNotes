@@ -1,8 +1,6 @@
-/* 4_28/2_40_remake.c */
+/* 4_18/2_41_remake.c */
 #include <stdio.h>
 #include <stdlib.h>
-
-enum constants { desired_count_for_print = 3 };
 
 typedef struct tag_item {
     long data;
@@ -10,14 +8,21 @@ typedef struct tag_item {
     struct tag_item *next;
 } item;
 
-item *add_item_to_long_list(long x, item *lst)
+void upd_max_val(int new, int *max)
+{
+    if (new > *max)
+        *max = new;
+}
+
+void add_item_to_long_list_and_upd_max_cnt(long x, item **lst, int *max_cnt)
 {
     item *cur, *prev = NULL;
 
-    for (cur = lst; cur; cur = cur->next) {
+    for (cur = *lst; cur; cur = cur->next) {
         if (cur->data == x) {
             (cur->count)++;
-            return lst;
+            upd_max_val(cur->count, max_cnt);
+            return;
         }
 
         prev = cur;
@@ -28,12 +33,14 @@ item *add_item_to_long_list(long x, item *lst)
     cur->count = 1;
     cur->next = NULL;
 
-    if (!lst)
-        lst = cur;
+    upd_max_val(cur->count, max_cnt);
+
+    if (!(*lst))
+        *lst = cur;
     else
         prev->next = cur;
 
-    return lst;
+    return;
 }
 
 void delete_long_list(item *lst)
@@ -47,24 +54,23 @@ void delete_long_list(item *lst)
     }
 }
 
-
 int main()
 {
     item *lst = NULL, *cur;
-    int items_read = 1;
+    int items_read, max_cnt;
     long val;
 
-    for (;;) {
+    for (items_read = 1, max_cnt = 0;;) {
         items_read = scanf("%ld", &val);
         
         if (items_read != 1)
             break;
 
-        lst = add_item_to_long_list(val, lst);
+        add_item_to_long_list_and_upd_max_cnt(val, &lst, &max_cnt);
     }
 
     for (cur = lst; cur; cur = cur->next)
-        if (cur->count == 3)
+        if (cur->count == max_cnt)
             printf("%ld ", cur->data);
 
     putchar('\n');
