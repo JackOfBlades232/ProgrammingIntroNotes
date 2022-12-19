@@ -1,0 +1,31 @@
+# gettext/de.po
+# German translation for HelloBye program
+# No colyright is claimed!
+# Petr S. Kiyashko, 2022
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: HelloBye 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-12-19 10:28+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Petr S. Kiyashko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=ASCII\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: hellobye.c:26
+#, c-format
+msgid "Hello, world!\n"
+msgstr "Hallo Welt!\n"
+
+#: hellobye.c:27
+#, c-format
+msgid "We are speaking\n"
+msgstr ""
+
+#: hellobye.c:28
+#, c-format
+msgid "Goodbye, world!\n"
+msgstr "Auf Weidersehen Welt!\n"

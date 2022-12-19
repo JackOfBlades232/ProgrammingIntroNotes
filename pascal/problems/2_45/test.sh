@@ -1,4 +1,4 @@
-#!/bin/sh
+# /bin/sh
 
 fpc -dTEST rbtree.pp > /dev/null
 fpc -dTEST unitdemo.pas > /dev/null

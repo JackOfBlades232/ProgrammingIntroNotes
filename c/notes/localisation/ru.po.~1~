@@ -1,0 +1,25 @@
+# gettext/ru.po
+# Russain translation for HelloBye program
+# No colyright is claimed!
+# Petr S. Kiyashko, 2022
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: HelloBye 1.0\n"
+"POT-Creation-Date: 2022-12-19 10:12+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Petr S. Kiyashko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=KOI8-R\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: hellobye.c:26
+#, c-format
+msgid "Hello, world!\n"
+msgstr "Здравствуй, мир!\n"
+
+#: hellobye.c:27
+#, c-format
+msgid "Goodbye, world!\n"
+msgstr "До свиданья, мир!\n"

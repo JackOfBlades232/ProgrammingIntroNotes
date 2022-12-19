@@ -75,6 +75,7 @@ _start: mov dword [ln_cnt], 0           ; prepare counters
         debug_print_number [ln_cnt], dbg_msg, dbg_ln, nl, nl_ln
         debug_print_number [chr_cnt], dbg_msg, dbg_ln, nl, nl_ln
         debug_print_number [max_ln], dbg_msg, dbg_ln, nl, nl_ln
+
 %endif
         kernel 4, [fd], ln_cnt, 4     ; now write 4-byte numbers to dest
         kernel 4, [fd], chr_cnt, 4 

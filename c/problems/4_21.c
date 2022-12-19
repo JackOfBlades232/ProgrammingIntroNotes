@@ -1,4 +1,5 @@
 /* 4_21.c */
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -58,3 +59,62 @@ void stackdbl_push(double x, stackdbl *st)
 
     *(st->top) = x;
 } 
+
+int stackdbl_pop(stackdbl *st, double *out)
+{
+    if (!st->top)
+        return 0;
+
+    *out = *(st->top);
+
+    if (st->base == st->top)
+        st->top = NULL;
+    else
+        (st->top)--;
+
+    return 1;
+}
+
+int stackdbl_empty(stackdbl *st)
+{
+    return st->top == NULL;
+}
+
+static void stackdbl_print(stackdbl *st)
+{
+    double *p;
+    
+    for (p = st->top; p && p >= st->base; p--)
+        printf("%lf ", *p);
+
+    putchar('\n');
+}
+
+int main()
+{
+    stackdbl *st;
+    int i;
+    double x;
+
+    st = stackdbl_init();
+
+    stackdbl_print(st);
+
+    stackdbl_push(2.0, st);
+    stackdbl_push(1.0, st);
+    stackdbl_push(3.0, st);
+
+    stackdbl_print(st);
+
+    for (i = 0; i < 3; i++) {
+        stackdbl_pop(st, &x);
+        printf("%lf\n", x);
+        stackdbl_print(st);
+    }
+
+    printf(stackdbl_empty(st) ? "empty\n" : "non-empty\n");
+
+    stackdbl_destroy(st);
+
+    return 0;
+}
