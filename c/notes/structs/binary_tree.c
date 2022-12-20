@@ -33,7 +33,7 @@ void int_bin_tree_add(struct node **root, int n)
     if (n < (*root)->val)
         int_bin_tree_add(&(*root)->left, n);
     else
-        int_bin_tree_add(&(*root)-> right, n);
+        int_bin_tree_add(&(*root)->right, n);
 }
 
 int main()
