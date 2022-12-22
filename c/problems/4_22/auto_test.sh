@@ -3,6 +3,6 @@
 
 I=1
 while [ $I -le $1 ]; do
-    test_generation/generate_test.out | ./prog.out
+    test_generation/generate_test.out $I | ./prog.out
     I=$(( I + 1 ))
 done
