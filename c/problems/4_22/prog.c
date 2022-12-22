@@ -111,6 +111,8 @@ int main() {
             default:
                 goto cleanup;
         }
+
+        printf("cur root: %s\n", root->key);
     }
 
 cleanup:

@@ -31,8 +31,6 @@ int rbtree_add_element(tree_node **root, const char *key, void *data)
 
     n = add_element_simple(root, NULL, key, data);
 
-    if (!*root)
-        *root = n;
     if (n)
         insert_case_1(n, root);
 
@@ -81,7 +79,20 @@ void print_with_info(const tree_node *root, int depth)
 
     print_with_info(root->left, depth+1);
     printf("%s %d ", root->key, depth);
-    printf(root->color == black ? "black\n" : "red\n");
+    printf(root->color == black ? "black" : "red");
+    if (root->parent) {
+        printf(" parent: %s ", root->parent->key);
+        printf(root->parent->color == black ? "black" : "red ");
+    }
+    if (root->left) {
+        printf(" left: %s ", root->left->key);
+        printf(root->left->color == black ? "black" : "red ");
+    }
+    if (root->right) {
+        printf(" right: %s ", root->right->key);
+        printf(root->right->color == black ? "black" : "red ");
+    }
+    putchar('\n');
     print_with_info(root->right, depth+1);
 }
 
@@ -130,11 +141,12 @@ static tree_node *create_node(tree_node *parent, const char *key, void *data)
     tree_node *n;
 
     n = malloc(sizeof(*n));
-    n->key = malloc(strlen(key) * sizeof(char));
+    n->key = malloc((strlen(key) + 1) * sizeof(char));
     strcpy(n->key, key);
     n->data = data;
     n->left = n->right = NULL;
     n->parent = parent;
+    n->color = red;
 
     return n;
 }
@@ -166,7 +178,7 @@ static tree_node *uncle(const tree_node *n)
 
 static tree_node *sibling(const tree_node *n)
 {
-    if (!n || !n->parent)
+    if (!n || !(n->parent))
         return NULL;
 
     return n == n->parent->left ? n->parent->right : n->parent->left;
@@ -184,8 +196,10 @@ static void rotate_left(tree_node *n, tree_node **root)
 {
     tree_node *pivot;
 
-    if (!n || !n->right)
+    if (!n || !(n->right))
         return;
+
+    printf("rl\n");
 
     pivot = n->right;
     pivot->parent = n->parent;
@@ -201,16 +215,18 @@ static void rotate_left(tree_node *n, tree_node **root)
     n->right = pivot->left;
     if (pivot->left)
         pivot->left->parent = n;
-    pivot->left = n;
     n->parent = pivot;
+    pivot->left = n;
 }
 
 static void rotate_right(tree_node *n, tree_node **root)
 {
     tree_node *pivot;
 
-    if (!n || !n->left)
+    if (!n || !(n->left))
         return;
+
+    printf("rr\n");
 
     pivot = n->left;
     pivot->parent = n->parent;
@@ -226,8 +242,8 @@ static void rotate_right(tree_node *n, tree_node **root)
     n->left = pivot->right;
     if (pivot->right)
         pivot->right->parent = n;
-    pivot->right = n;
     n->parent = pivot;
+    pivot->right = n;
 }
 
 static tree_node *add_element_simple(tree_node **root, tree_node *parent,
@@ -253,15 +269,19 @@ static tree_node *add_element_simple(tree_node **root, tree_node *parent,
 
 static void insert_case_1(tree_node *n, tree_node **root)
 {
-    if (!n->parent)
+    printf("ic1\n");
+    if (!(n->parent)) {
+        printf("recolor\n");
         n->color = black;
-    else if (n->parent->color == red)
+    } else if (n->parent->color == red)
         insert_case_2(n, root);
 }
 
 static void insert_case_2(tree_node *n, tree_node **root)
 {
     tree_node *gp, *un;
+
+    printf("ic2\n");
 
     un = uncle(n);
     if (is_red(un)) {
@@ -279,6 +299,8 @@ static void insert_case_3(tree_node *n, tree_node **root)
 {
     tree_node *gp;
 
+    printf("ic3\n");
+
     gp = grandparent(n);
     if (n->parent == gp->left && n == n->parent->right) {
         rotate_left(n->parent, root);
@@ -295,19 +317,21 @@ static void insert_case_4(tree_node *n, tree_node **root)
 {
     tree_node *gp;
 
+    printf("ic4\n");
+
     gp = grandparent(n);
-    if (n->parent == gp->left)
+    n->parent->color = black;
+    gp->color = red;
+    
+    if (n == n->parent->left && n->parent == gp->left)
         rotate_right(gp, root);
     else
         rotate_left(gp, root);
-
-    n->parent->color = black;
-    gp->color = red;
 }
 
 static tree_node *rightmost_node_in_subtree(tree_node *root)
 {
-    if (!root->right)
+    if (!(root->right))
         return root;
 
     return rightmost_node_in_subtree(root->right);
@@ -318,7 +342,7 @@ static void replace_with_child(tree_node *n, tree_node *c, tree_node **root)
     if (c)
         c->parent = n->parent;
 
-    if (!n->parent)
+    if (!(n->parent))
         *root = c;
     else if (n == n->parent->left)
         n->parent->left = c;
@@ -335,8 +359,6 @@ static void delete_one_child(tree_node *n, tree_node **root)
         if (is_red(c))
             c->color = black;
         else if (n->parent) {
-            if (c && c->color == black)
-                printf("Child is black\n");
             delete_case_1(n, root);
         }
     }
@@ -349,6 +371,8 @@ static void delete_one_child(tree_node *n, tree_node **root)
 
 static void delete_case_1(tree_node *n, tree_node **root) 
 {
+    printf("dc1\n");
+
     if (n->parent)
         delete_case_2(n, root);
 }
@@ -358,7 +382,10 @@ static void delete_case_2(tree_node *n, tree_node **root)
     tree_node *s;
     s = sibling(n);
 
+    printf("dc2\n");
+
     if (is_red(s)) {
+        printf("dc2red\n");
         n->parent->color = red;
         s->color = black;
 
@@ -376,6 +403,8 @@ static void delete_case_3(tree_node *n, tree_node **root)
     tree_node *s;
     s = sibling(n);
 
+    printf("dc3\n");
+
     if (is_black(s) && is_black(n->parent) && children_are_black(s)) {
         s->color = red;
         delete_case_1(n->parent, root);
@@ -388,7 +417,10 @@ static void delete_case_4(tree_node *n, tree_node **root)
     tree_node *s;
     s = sibling(n);
 
+    printf("dc4\n");
+
     if (is_black(s) && is_red(n->parent) && children_are_black(s)) {
+        printf("dc4fin\n");
         s->color = red;
         n->parent->color = black;
     } else
@@ -400,7 +432,10 @@ static void delete_case_5(tree_node *n, tree_node **root)
     tree_node *s;
     s = sibling(n);
 
+    printf("dc5\n");
+
     if (is_black(s)) {
+        printf("dc5black\n");
         if (n == n->parent->left && is_red(s->left) && is_black(s->right)) {
             s->color = red;
             s->left->color = black;
@@ -420,6 +455,8 @@ static void delete_case_6(tree_node *n, tree_node **root)
 {
     tree_node *s;
     s = sibling(n);
+
+    printf("dc6\n");
 
     s->color = n->parent->color;
     n->parent->color = black;
