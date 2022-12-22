@@ -2,6 +2,8 @@
 #include "rbtree.h"
 #include <stdio.h>
 
+#define INTERACTIVE
+
 int read_line(char *command, char *key) {
     *command = getchar();
     *key = getchar();
@@ -67,17 +69,31 @@ int main() {
     int prog_res = 1;
 #ifdef INTERACTIVE
     const tree_node *n;
-    int add_res;
+    int op_res;
 #endif
 
     while (read_line(&command, key)) {
         switch (command) {
             case 'a':
 #ifdef INTERACTIVE
-                add_res = rbtree_add_element(&root, key, NULL);
-                printf(add_res ? "Added\n" : "Was in tree\n");
+                printf("add ");
+                printf(check_tree(root) ? "valid " : "not valid ");
+                op_res = rbtree_add_element(&root, key, NULL);
+                printf(check_tree(root) ? "valid\n" : "not valid\n");
+                printf(op_res ? "Added\n" : "Was in tree\n");
 #else
                 rbtree_add_element(&root, key, NULL);
+#endif
+                break;
+            case 'd':
+#ifdef INTERACTIVE
+                printf("rm ");
+                printf(check_tree(root) ? "valid " : "not valid ");
+                op_res = rbtree_remove_element(&root, key);
+                printf(check_tree(root) ? "valid\n" : "not valid\n");
+                printf(op_res ? "Removed\n" : "Was not in tree\n");
+#else
+                rbtree_remove_element(&root, key);
 #endif
                 break;
 #ifdef INTERACTIVE

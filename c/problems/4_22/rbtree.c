@@ -39,8 +39,57 @@ int rbtree_add_element(tree_node **root, const char *key, void *data)
     return n != NULL;
 }
 
+static tree_node *rightmost_node_in_subtree(tree_node *root);
+static void replace_with_child(tree_node *n, tree_node *c, tree_node **root);
+static void delete_one_child(tree_node *n, tree_node **root);
+static void delete_case_1(tree_node *n, tree_node **root);
+static void delete_case_2(tree_node *n, tree_node **root);
+static void delete_case_3(tree_node *n, tree_node **root);
+static void delete_case_4(tree_node *n, tree_node **root);
+static void delete_case_5(tree_node *n, tree_node **root); 
+static void delete_case_6(tree_node *n, tree_node **root);
+
+int rbtree_remove_element(tree_node **root, const char *key)
+{
+    tree_node *n, *r;
+
+    n = (tree_node *)rbtree_get_element(*root, key);
+    if (!n)
+        return 0;
+
+    if (n->left && n->right) {
+        r = rightmost_node_in_subtree(n->left);
+
+        free(n->key);
+        n->key = r->key;
+        n->data = r->data;
+        r->key = NULL;
+
+        n = r;
+    }
+
+    delete_one_child(n, root);
+    return 1;
+}
+
+void print_with_info(const tree_node *root, int depth)
+{
+    if (!root) {
+        printf("nil %d\n", depth);
+        return;
+    }
+
+    print_with_info(root->left, depth+1);
+    printf("%s %d ", root->key, depth);
+    printf(root->color == black ? "black\n" : "red\n");
+    print_with_info(root->right, depth+1);
+}
+
 void rbtree_print(const tree_node *root)
 {
+    print_with_info(root, 0);
+    return;
+
     if (!root)
         return;
 
@@ -71,6 +120,11 @@ static int is_red(tree_node *n)
     return !is_black(n);
 }
 
+static int children_are_black(tree_node *n)
+{
+    return !n || (is_black(n->left) && is_black(n->right));
+}
+
 static tree_node *create_node(tree_node *parent, const char *key, void *data)
 {
     tree_node *n;
@@ -88,30 +142,10 @@ static tree_node *create_node(tree_node *parent, const char *key, void *data)
 static void destroy_node(tree_node* n)
 {
     if (n) {
-        free(n->key);
+        if (n->key)
+            free(n->key);
         free(n);
     }
-}
-
-static tree_node *add_element_simple(tree_node **root, tree_node *parent,
-        const char *key, void *data)
-{
-    int comp_res;
-
-    if (!(*root)) {
-        *root = create_node(parent, key, data);
-        return *root;
-    }
-
-    comp_res = strcmp((*root)->key, key);
-
-    if (comp_res == 0)
-        return NULL;
-
-    if (comp_res > 0)
-        return add_element_simple(&((*root)->left), *root, key, data);
-    else
-        return add_element_simple(&((*root)->right), *root, key, data);
 }
 
 static tree_node *grandparent(const tree_node *n)
@@ -128,6 +162,22 @@ static tree_node *uncle(const tree_node *n)
         return n->parent == gp->left ? gp->right : gp->left;
     else
         return NULL;
+}
+
+static tree_node *sibling(const tree_node *n)
+{
+    if (!n || !n->parent)
+        return NULL;
+
+    return n == n->parent->left ? n->parent->right : n->parent->left;
+}
+
+static tree_node *child(const tree_node *n)
+{
+    if (!n)
+        return NULL;
+
+    return n->right ? n->right : n->left;
 }
 
 static void rotate_left(tree_node *n, tree_node **root)
@@ -180,9 +230,30 @@ static void rotate_right(tree_node *n, tree_node **root)
     n->parent = pivot;
 }
 
+static tree_node *add_element_simple(tree_node **root, tree_node *parent,
+        const char *key, void *data)
+{
+    int comp_res;
+
+    if (!(*root)) {
+        *root = create_node(parent, key, data);
+        return *root;
+    }
+
+    comp_res = strcmp((*root)->key, key);
+
+    if (comp_res == 0)
+        return NULL;
+
+    if (comp_res > 0)
+        return add_element_simple(&((*root)->left), *root, key, data);
+    else
+        return add_element_simple(&((*root)->right), *root, key, data);
+}
+
 static void insert_case_1(tree_node *n, tree_node **root)
 {
-    if (!(n->parent))
+    if (!n->parent)
         n->color = black;
     else if (n->parent->color == red)
         insert_case_2(n, root);
@@ -232,4 +303,132 @@ static void insert_case_4(tree_node *n, tree_node **root)
 
     n->parent->color = black;
     gp->color = red;
+}
+
+static tree_node *rightmost_node_in_subtree(tree_node *root)
+{
+    if (!root->right)
+        return root;
+
+    return rightmost_node_in_subtree(root->right);
+}
+
+static void replace_with_child(tree_node *n, tree_node *c, tree_node **root)
+{
+    if (c)
+        c->parent = n->parent;
+
+    if (!n->parent)
+        *root = c;
+    else if (n == n->parent->left)
+        n->parent->left = c;
+    else
+        n->parent->right = c;
+}
+
+static void delete_one_child(tree_node *n, tree_node **root)
+{
+    tree_node *c;
+    c = child(n);
+    
+    if (n->color == black) {
+        if (is_red(c))
+            c->color = black;
+        else if (n->parent) {
+            if (c && c->color == black)
+                printf("Child is black\n");
+            delete_case_1(n, root);
+        }
+    }
+
+    print_with_info(*root, 0);
+
+    replace_with_child(n, c, root);
+    destroy_node(n);
+}
+
+static void delete_case_1(tree_node *n, tree_node **root) 
+{
+    if (n->parent)
+        delete_case_2(n, root);
+}
+
+static void delete_case_2(tree_node *n, tree_node **root) 
+{
+    tree_node *s;
+    s = sibling(n);
+
+    if (is_red(s)) {
+        n->parent->color = red;
+        s->color = black;
+
+        if (n == n->parent->left)
+            rotate_left(n, root);
+        else
+            rotate_right(n, root);
+    }
+    
+    delete_case_3(n, root);
+}
+
+static void delete_case_3(tree_node *n, tree_node **root) 
+{
+    tree_node *s;
+    s = sibling(n);
+
+    if (is_black(s) && is_black(n->parent) && children_are_black(s)) {
+        s->color = red;
+        delete_case_1(n->parent, root);
+    } else 
+        delete_case_4(n, root);
+}
+
+static void delete_case_4(tree_node *n, tree_node **root) 
+{
+    tree_node *s;
+    s = sibling(n);
+
+    if (is_black(s) && is_red(n->parent) && children_are_black(s)) {
+        s->color = red;
+        n->parent->color = black;
+    } else
+        delete_case_5(n, root);
+}
+
+static void delete_case_5(tree_node *n, tree_node **root) 
+{
+    tree_node *s;
+    s = sibling(n);
+
+    if (is_black(s)) {
+        if (n == n->parent->left && is_red(s->left) && is_black(s->right)) {
+            s->color = red;
+            s->left->color = black;
+            rotate_right(s, root);
+        } else if (n == n->parent->right &&
+                is_red(s->right) && is_black(s->left)) {
+            s->color = red;
+            s->right->color = black;
+            rotate_left(s, root);
+        }
+    }
+
+    delete_case_6(n, root);
+}
+
+static void delete_case_6(tree_node *n, tree_node **root) 
+{
+    tree_node *s;
+    s = sibling(n);
+
+    s->color = n->parent->color;
+    n->parent->color = black;
+
+    if (n == n->parent->left) {
+        s->right->color = black;
+        rotate_left(n->parent, root);
+    } else {
+        s->left->color = black;
+        rotate_right(n->parent, root);
+    }
 }
