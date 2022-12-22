@@ -13,15 +13,12 @@ int random_in_range(int min, int max)
 int main() 
 {
     int num_elements;
-    char c;
 
     srand(time(NULL));
-    num_elements = random_in_range(min_elements, max_elements) / 2;
+    num_elements = random_in_range(min_elements, max_elements);
 
     for (; num_elements > 0; num_elements--) {
-        c = random_in_range(0, 1) ? 'a' : 'd';
-        printf("%c%c\n", c, random_in_range(min_char, max_char));
-        printf("p1\n");
+        printf("a%c\n", random_in_range(min_char, max_char));
     }
 
     printf("c1\n");

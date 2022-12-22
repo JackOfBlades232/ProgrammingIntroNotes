@@ -13,7 +13,6 @@ typedef struct tag_tree_node {
 
 const tree_node *rbtree_get_element(const tree_node *root, const char *key);
 int rbtree_add_element(tree_node **root, const char *key, void *data);
-int rbtree_remove_element(tree_node **root, const char *key);
 void rbtree_print(const tree_node *root);
 void rbtree_destroy(tree_node *root);
 

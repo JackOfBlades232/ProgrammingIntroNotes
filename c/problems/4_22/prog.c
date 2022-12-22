@@ -2,7 +2,7 @@
 #include "rbtree.h"
 #include <stdio.h>
 
-#define INTERACTIVE
+/* #define INTERACTIVE */
 
 int read_line(char *command, char *key) {
     *command = getchar();
@@ -76,24 +76,10 @@ int main() {
         switch (command) {
             case 'a':
 #ifdef INTERACTIVE
-                printf("add ");
-                printf(check_tree(root) ? "valid " : "not valid ");
                 op_res = rbtree_add_element(&root, key, NULL);
-                printf(check_tree(root) ? "valid\n" : "not valid\n");
                 printf(op_res ? "Added\n" : "Was in tree\n");
 #else
                 rbtree_add_element(&root, key, NULL);
-#endif
-                break;
-            case 'd':
-#ifdef INTERACTIVE
-                printf("rm ");
-                printf(check_tree(root) ? "valid " : "not valid ");
-                op_res = rbtree_remove_element(&root, key);
-                printf(check_tree(root) ? "valid\n" : "not valid\n");
-                printf(op_res ? "Removed\n" : "Was not in tree\n");
-#else
-                rbtree_remove_element(&root, key);
 #endif
                 break;
 #ifdef INTERACTIVE
@@ -107,12 +93,10 @@ int main() {
 #endif
             case 'c':
                 prog_res = check_tree(root);
-                printf(prog_res ? "Valid!\n" : "Not valid\n");
+                printf(prog_res ? "" : "Not valid\n");
             default:
                 goto cleanup;
         }
-
-        printf("cur root: %s\n", root->key);
     }
 
 cleanup:
