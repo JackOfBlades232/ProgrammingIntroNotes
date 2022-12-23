@@ -2,7 +2,7 @@
 #include "rbtree.h"
 #include <stdio.h>
 
-#define INTERACTIVE
+/* #define INTERACTIVE */
 
 int read_line(char *command, char *key) {
     *command = getchar();
