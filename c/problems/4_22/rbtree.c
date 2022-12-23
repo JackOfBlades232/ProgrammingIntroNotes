@@ -42,7 +42,7 @@ int rbtree_add_element(tree_node **root, const char *key, void *data)
 static void substitute_and_remove_element(tree_node *n, tree_node **root);
 static tree_node *rightmost_element_in_subtree(tree_node *root);
 static tree_node *replace_with_child_and_get_parent(
-        tree_node *n, tree_node **root);
+        tree_node **n, tree_node **root);
 static void delete_case_1(tree_node *n, tree_node* parent, tree_node **root);
 static void delete_case_2(tree_node *n, tree_node* parent, tree_node **root);
 static void delete_case_3(tree_node *n, tree_node* parent, tree_node **root);
@@ -161,6 +161,8 @@ static void rotate_left(tree_node *n, tree_node **root)
     if (!n || !(n->right))
         return;
 
+    printf("    rl\n");
+
     pivot = n->right;
     pivot->parent = n->parent;
 
@@ -185,6 +187,8 @@ static void rotate_right(tree_node *n, tree_node **root)
 
     if (!n || !(n->left))
         return;
+
+    printf("    rr\n");
 
     pivot = n->left;
     pivot->parent = n->parent;
@@ -283,14 +287,50 @@ static void insert_case_4(tree_node *n, tree_node **root)
 
 /* Deletion */
 
+static void debug_print_node(tree_node *n, int depth)
+{
+    int i;
+
+    for (i = 0; i < depth; i++)
+        printf("    ");
+    if (!n)
+        printf("null\n");
+    else {
+        printf("%s, ", n->key); 
+        printf(is_black(n) ? "black\n" : "red\n");
+    }
+}
+
+static void debug_print_tree(tree_node *root, int depth)
+{
+    if (!root) {
+        debug_print_node(root, depth);
+        return;
+    }
+
+    debug_print_tree(root->left, depth+1);
+    debug_print_node(root, depth);
+    debug_print_tree(root->right, depth+1);
+}
+
 static void substitute_and_remove_element(tree_node *n, tree_node **root)
 {
     tree_node *repl = NULL, *parent;
     char *key_tmp;
     node_color old_color;
 
+    debug_print_tree(*root, 0);
+
+    printf("    substitute\n");
+        
+    printf("    old key: %s\n", n->key);
+
     if (n->left && n->right) {
+        printf("    replace\n");
+
         repl = rightmost_element_in_subtree(n->left);
+        
+        printf("    repl key: %s\n", repl->key);
 
         key_tmp = repl->key;
         repl->key = n->key;
@@ -302,7 +342,8 @@ static void substitute_and_remove_element(tree_node *n, tree_node **root)
 
     old_color = n->color;
     
-    parent = replace_with_child_and_get_parent(n, root);
+    parent = replace_with_child_and_get_parent(&n, root);
+    debug_print_tree(*root, 0);
     if (old_color == black)
         delete_case_1(n, parent, root);
 }
@@ -316,30 +357,36 @@ static tree_node *rightmost_element_in_subtree(tree_node *root)
 }
 
 static tree_node *replace_with_child_and_get_parent(
-        tree_node *n, tree_node **root)
+        tree_node **np, tree_node **root)
 {
     tree_node *c, *parent;
 
-    c = child(n);
+    c = child(*np);
+    printf(c ? "    repl child not null\n" : "    repl child null\n");
     if (c)
-        c->parent = n->parent;
+        c->parent = (*np)->parent;
 
-    if (!(n->parent))
+    if (!((*np)->parent))
         *root = c;
-    else if (n == n->parent->left)
-        n->parent->left = c;
+    else if ((*np) == (*np)->parent->left)
+        (*np)->parent->left = c;
     else
-        n->parent->right = c;
+        (*np)->parent->right = c;
 
-    parent = n->parent;
-    destroy_node(n);
+    parent = (*np)->parent;
+    destroy_node(*np);
+    *np = c;
+
     return parent;
 }
 
 static void delete_case_1(tree_node *n, tree_node* parent, tree_node **root)
 {
-    if (is_red(n))
+    printf("    d case 1\n");
+    if (is_red(n)) {
+        printf("    d case 1.5\n");
         n->color = black;
+    }
     else if (parent)
         delete_case_2(n, parent, root);
 }
@@ -348,6 +395,8 @@ static void delete_case_2(tree_node *n, tree_node* parent, tree_node **root)
 {
     tree_node *s;
     s = sibling(n, parent);
+
+    printf("    d case 2\n");
 
     if (is_red(s)) {
         s->color = black;
@@ -366,6 +415,8 @@ static void delete_case_3(tree_node *n, tree_node* parent, tree_node **root)
     tree_node *s;
     s = sibling(n, parent);
 
+    printf("    d case 3\n");
+
     if (s && is_black(s->left) && is_black(s->right)) {
         s->color = red;
         if (parent->color == black)
@@ -380,6 +431,8 @@ static void delete_case_4(tree_node *n, tree_node* parent, tree_node **root)
 {
     tree_node *s;
     s = sibling(n, parent);
+
+    printf("    d case 4\n");
 
     if (s && n == parent->left && is_red(s->left) && is_black(s->right)) {
         s->color = red;
@@ -400,13 +453,57 @@ static void delete_case_5(tree_node *n, tree_node* parent, tree_node **root)
     tree_node *s;
     s = sibling(n, parent);
 
+    printf("    d case 5\n");
+    if (n) {
+        printf("        n: ");
+        printf(is_black(n) ? "black " : "red ");
+        if (n->left) {
+            printf("left: ");
+            printf(is_black(n->left) ? "black " : "red ");
+        } 
+        if (n->right) {
+            printf("right: ");
+            printf(is_black(n->right) ? "black " : "red ");
+        }
+        putchar('\n');
+    }
+    if (s) {
+        printf("        sib: ");
+        printf(is_black(s) ? "black " : "red ");
+        if (s->left) {
+            printf("left: ");
+            printf(is_black(s->left) ? "black " : "red ");
+        } 
+        if (s->right) {
+            printf("right: ");
+            printf(is_black(s->right) ? "black " : "red ");
+        }
+        putchar('\n');
+    }
+    if (parent) {
+        printf("        parent: ");
+        printf(is_black(parent) ? "black " : "red ");
+        if (parent->left) {
+            printf("left: ");
+            printf(is_black(parent->left) ? "black " : "red ");
+        } 
+        if (parent->right) {
+            printf("right: ");
+            printf(is_black(parent->right) ? "black " : "red ");
+        }
+        putchar('\n');
+    }
+    debug_print_tree(*root, 0);
+
     s->color = parent->color;
     parent->color = black;
 
     if (n == parent->left) {
+        printf("    d case 5.1\n");
         s->right->color = black;
         rotate_left(parent, root);
     } else {
+        printf("    d case 5.2\n");
         s->left->color = black;
         rotate_right(parent, root);
     }
