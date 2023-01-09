@@ -51,7 +51,6 @@ void update_max_line(string *current_line, file_info *info)
     current_line->len = 0;
 }
 
-
 int construct_file_info(file_info *info, const char *filename) 
 {
     FILE *fp;
@@ -72,7 +71,7 @@ int construct_file_info(file_info *info, const char *filename)
         if (current_line.len >= current_line.capacity - 1)
             current_line = resize_string(current_line);
 
-        if (c != 10) {
+        if (c != '\n') {
             current_line.content[current_line.len] = c;
             (current_line.len)++;
         } else 
