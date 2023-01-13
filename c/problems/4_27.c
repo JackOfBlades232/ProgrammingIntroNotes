@@ -3,10 +3,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-enum { key_escape = 27, key_enter = 13 };
+enum { key_escape = 27, key_enter = '\n' };
 enum { item_spacing = 1, vertical_padding = 2, left_padding = 4 };
 enum { reg_color_pair = 1, selected_color_pair = 2 };
 enum { fg = COLOR_WHITE, reg_bg = COLOR_BLACK, selected_bg = COLOR_BLUE };
+
+struct menu {
+    char **items;
+    int f_idx, s_idx;
+    int items_cnt, scr_cap;
+};
 
 static int min(int a, int b)
 {
@@ -25,22 +31,36 @@ static void show_item(const char *item, int y, int c_pair)
     addstr(item);
 }
 
-static void draw_menu(char **items, int items_cnt,
-        int first_idx, int selected_idx, int screen_capacity)
+static void draw_menu(struct menu *m)
 {
     int i, y, max_i;
 
-    max_i = min(items_cnt, first_idx + screen_capacity);
+    max_i = min(m->items_cnt, m->f_idx + m->scr_cap);
     for (
-            i = first_idx, y = vertical_padding; 
+            i = m->f_idx, y = vertical_padding; 
             i < max_i;
             i++, y += 1 + item_spacing
         ) {
-        show_item(items[i], y, 
-                i == selected_idx ? selected_color_pair : reg_color_pair);
+        show_item(m->items[i], y, 
+                i == m->s_idx ? selected_color_pair : reg_color_pair);
     }
 
     refresh();
+}
+
+static void switch_selected_item(struct menu *m, int delta_idx)
+{
+    m->s_idx += delta_idx;
+
+    if (m->s_idx < 0)
+        m->s_idx = 0;
+    else if (m->s_idx >= m->items_cnt)
+        m->s_idx = m->items_cnt - 1;
+
+    if (m->s_idx < m->f_idx)
+        m->f_idx = m->s_idx;
+    else if (m->s_idx >= m->f_idx + m->scr_cap)
+        m->f_idx = m->s_idx - m->scr_cap + 1;
 }
 
 static void check_terminal_size(int row)
@@ -52,11 +72,12 @@ static void check_terminal_size(int row)
     }
 }
 
-static void on_resize(int *row, int *col)
+static void on_resize(int *row, int *col, struct menu *m)
 {
     getmaxyx(stdscr, *row, *col);
     check_terminal_size(*row);
-    erase();
+
+    m->scr_cap = calculate_screen_capacity(*row);
 }
 
 static void init_curses(int *row, int *col)
@@ -86,7 +107,7 @@ static void init_colors()
 int main(int argc, char **argv)
 {
     int row, col, key;
-    int screen_capacity, first_idx, selected_idx;
+    struct menu m;
 
     if (argc < 3 || argc > 101) {
         fprintf(stderr, "Provide from 2 to 100 arguments\n");
@@ -95,19 +116,35 @@ int main(int argc, char **argv)
 
     init_curses(&row, &col);
     init_colors();
-    screen_capacity = calculate_screen_capacity(row);
 
-    /* testing */
-    first_idx = 1;
-    selected_idx = 1;
-    draw_menu(argv, argc, first_idx, selected_idx, screen_capacity);
+    m.items = argv + 1;
+    m.items_cnt = argc - 1;
+    m.scr_cap = calculate_screen_capacity(row);
+    m.f_idx = 0;
+    m.s_idx = 0;
+
+    draw_menu(&m);
 
     while ((key = getch()) != key_escape) {
         switch (key) {
+            case key_enter:
+                endwin();
+                return m.s_idx + 1;
+            case KEY_UP:
+                switch_selected_item(&m, -1);
+                break;
+            case KEY_DOWN:
+                switch_selected_item(&m, 1);
+                break;
             case KEY_RESIZE:
-                on_resize(&row, &col);
-                draw_menu(argv, argc, first_idx, selected_idx, screen_capacity);
+                on_resize(&row, &col, &m);
+                break;
+            default:
+                continue;
         }
+
+        erase();
+        draw_menu(&m);
     }
 
     endwin();
