@@ -39,3 +39,50 @@ e) "  Hell"
 
 4.16
 char, 65
+
+4.28
+a) int (*p)[12];
+b) double (*p)[10][2]
+c) char (*p)[5]
+d) char *(*p)[5]
+e) struct item *(*p)[3]
+f) struct item **p;
+
+4.29
+a) void (*p)(int);
+b) int (*p)(int);
+c) void *(*p)(int);
+d) double (*p)(int, const char *);
+e) void (*p)(double (*)[3]);
+f) double (*(*p)(int, double (*)[3]))[3];
+
+4.30
+int (*lessfp)(const char *, const char *);
+
+4.31
+a) func f(int x) that returns an pointer to an int *arr[10]
+    typedef int * intptr;
+    typedef intptr (*int10ptr)[10];
+    int10ptr f(int);
+b) a 15-elem array of pointers to a function with params of type int, pointer
+   to a function with params int and void*, and void*
+    typedef void (fp1*)(int, void *);
+    typedef void (fp2*)(int, fp1, void *);
+    fp2 vec[15];
+c) a pointer to a function that takes as a param a function with 1 double param
+   and double ret value, and returns another function with this signature
+    typedef double (dfunc*)(double);
+    dfunc (*f)(dfunc);
+d) it is a pointer to an array of 4 pointers to functions that take as a param
+   a pointer to a function that returns nothing and takes a pointer to a double
+   , and the initial func returns an int
+    typedef void (*dpfp)(double *);
+    typedef int (*fp)(dpfp);
+    typedef fvec[4];
+    fvec *v;
+
+4.32
+double (*(*set_sr_func(
+    int num, 
+    double (*(*func)(double (*)[3], int, double))[3]
+))(double (*)[3], int, double))[3]
