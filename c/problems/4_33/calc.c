@@ -1,153 +1,175 @@
-/* 4_33/calc.c */
-int sys_read(int fd, void *buf, int size);
-int sys_write(int fd, const void *buf, int size);
+/* 5_33/calc.c */
+#include "stack.c"
+#include "charfunc.c"
+#include "intstr.c"
+#include "io.c"
 
-enum { 
-    in_bufsize = 128, out_bufsize = 11, 
-    rpn_stk_size = 64, sgn_stk_size = 128 
-};
+enum { in_bufsize = 128, out_bufsize = 11 };
 
 static const char input_err[] = "Invalid expression\n";
 
 static char in_buf[in_bufsize];
 static char out_buf[out_bufsize];
-static int rpn_stk[rpn_stk_size];
-static char sgn_stk[sgn_stk_size];
 
-int char_is_digit(char c)
+int apply_arifm(int a, int b, char sgn)
 {
-    return c >= '0' && c <= '9';
+    switch (sgn) {
+        case '+':
+            return a + b;
+        case '-':
+            return a - b;
+        case '*':
+            return a * b;
+        case '/':
+            return a / b;
+        default:
+            return a;
+    }
 }
 
-int char_is_sign(char c)
+int apply_rpn_step(char sgn, int_stack *rpn_stk)
 {
-    return c == '(' || c == ')' || c == '+' || c == '-' ||
-           c == '*' || c == '/';
-}
+    int status;
+    int a, b, res;
 
-int read_input_to_buf()
-{
-    return sys_read(0, in_buf, in_bufsize);
-}
-
-int write_output_from_buf(int len)
-{
-    return sys_write(1, out_buf, len);
-}
-
-int putnl()
-{
-    return sys_write(1, "\n", 1);
-}
-
-int push_int(int num, int *rpn_stk_top)
-{
-    if (rpn_stk_top - rpn_stk + 1 >= rpn_stk_size)
+    status = char_is_arifm_sign(sgn) &&
+        int_stack_pop(rpn_stk, &b) && int_stack_pop(rpn_stk, &a);
+    if (!status)
         return 0;
 
-    rpn_stk_top++;
-    *rpn_stk_top = num;
-    return 1;
-}
-
-int push_sgn(char sgn, char *sgn_stk_top)
-{
-    if (sgn_stk_top - sgn_stk + 1 >= sgn_stk_size)
+    if (sgn == '/' && b == 0)
         return 0;
 
-    sgn_stk_top++;
-    *sgn_stk_top = sgn;
-    return 1;
+    res = apply_arifm(a, b, sgn);
+    return int_stack_push(res, rpn_stk);
 }
 
-int parse_int(const char *str, int strlen, int *out, char *break_chr)
+int process_stack(int_stack *rpn_stk, char_stack *sgn_stk)
 {
-    int chars_read = 1;
+    int status = 1;
+    char sgn;
 
-    *out = 0;
-    for (; chars_read <= strlen; str++, chars_read++) {
-        if (!char_is_digit(*str))
+    while (status) {
+        status = char_stack_pop(sgn_stk, &sgn);
+        if (!status)
             break;
 
-        *out *= 10;
-        *out += *str - '0';
+        if (sgn == '(')
+            return 1;
+        else
+            status = apply_rpn_step(sgn, rpn_stk);
     }
 
-    *break_chr = *str;
-    return chars_read;
-}
+    return 0;
+} 
 
-int stringify_int(int num, char *dest, int destlen)
+int priority_less(char sgn_a, char sgn_b)
 {
-    int status = 0;
-    char *lp, *fp;
-
-    lp = dest;
-    for (; lp - dest < destlen; lp++) {
-        *lp = num%10 + '0';
-        num /= 10;
-        if (num == 0) {
-            status = 1;
-            break;
-        }
-    }
-
-    if (status == 0)
-        return status;
-    else
-        status = lp - dest + 1;
-
-    for (fp = dest; lp - fp > 0; fp++, lp--) {
-        char tmp = *fp;
-        *fp = *lp;
-        *lp = tmp;
-    }
-
-    return status;
+    return sgn_a == '(' ||
+        ((sgn_a == '+' || sgn_a == '-') && (sgn_b == '*' || sgn_b == '/'));
 }
 
-void process_sign(char sgn, int *rpn_stk_top, char *sgn_stk_top)
+int process_arifm_sign(char sgn, int_stack *rpn_stk, char_stack *sgn_stk)
 {
+    int status;
+    char top_sgn;
+    
+    status = char_stack_pop(sgn_stk, &top_sgn);
+    if (!status)
+        return 0;
+
+    if (priority_less(top_sgn, sgn)) {
+        return char_stack_push(top_sgn, sgn_stk) &&
+            char_stack_push(sgn, sgn_stk);
+    } else {
+        status = apply_rpn_step(top_sgn, rpn_stk);
+        
+        return status == 0 ?
+            status :
+            process_arifm_sign(sgn, rpn_stk, sgn_stk);
+    }
+} 
+
+int process_sign(char sgn, int_stack *rpn_stk, char_stack *sgn_stk)
+{
+    switch (sgn) {
+        case '(':
+            return char_stack_push(sgn, sgn_stk);
+        case ')':
+            return process_stack(rpn_stk, sgn_stk);
+        default:
+            return process_arifm_sign(sgn, rpn_stk, sgn_stk);
+    }
 }
 
-int process_int_from_buf(const char *buf, int buflen, 
-        int *rpn_stk_top, char *sgn_stk_top)
+int process_int_from_buf(char **buf, int *remaining_bufsize, 
+        int_stack *rpn_stk, char_stack *sgn_stk)
 {
     int chars_read;
     int n;
     char brkchr;
 
-    chars_read = parse_int(buf, buflen, &n, &brkchr);
-    if (chars_read > 1)
-        push_int(n, rpn_stk_top);
-
-    if (brkchr == '\0')
+    if (*remaining_bufsize <= 0)
         return 0;
-    else if (char_is_sign(brkchr)) {
-        process_sign(brkchr, rpn_stk_top, sgn_stk_top);
-        return chars_read;
-    } else
-        return -1;
+
+    chars_read = parse_int(*buf, *remaining_bufsize, &n, &brkchr);
+    *buf += chars_read;
+    *remaining_bufsize -= chars_read;
+
+    if (chars_read > 1)
+        int_stack_push(n, rpn_stk);
+
+    if (char_is_stringbreak(brkchr))
+        return process_sign(')', rpn_stk, sgn_stk);
+    else if (char_is_sign(brkchr))
+        return process_sign(brkchr, rpn_stk, sgn_stk);
+    else
+        return 0;
 }
 
 int main()
 {
-    /* test */
-    int nchars;
-    int num1, num2;
-    char brchr;
+    int chars_written, status;
+    int res;
 
-    read_input_to_buf();
-    parse_int(in_buf, in_bufsize, &num1, &brchr);
+    int_stack rpn_stk;
+    char_stack sgn_stk;
 
-    read_input_to_buf();
-    parse_int(in_buf, in_bufsize, &num2, &brchr);
+    int in_left;
+    char *in_bufp;
 
-    num1 += num2;
+    in_bufp = in_buf;
+    in_left = read_input_to_buf(in_buf, in_bufsize);
+    in_left = remove_spaces(in_buf, in_left);
 
-    nchars = stringify_int(num1, out_buf, out_bufsize);
-    write_output_from_buf(nchars);
-    putnl();
+    rpn_stk.top = rpn_stk.content;
+    sgn_stk.top = sgn_stk.content;
+
+    char_stack_push('(', &sgn_stk);
+
+    status = 1;
+    do {
+        status = process_int_from_buf(&in_bufp, &in_left, &rpn_stk, &sgn_stk);
+    } while (status && in_left > 0);
+
+    status = status && char_stack_is_empty(&sgn_stk);
+
+    if (!status) {
+        werr(input_err);
+        return 1;
+    }
+
+    status = int_stack_pop(&rpn_stk, &res) && int_stack_is_empty(&rpn_stk);
+
+    if (status) {
+        chars_written = stringify_int(res, out_buf, out_bufsize);
+        write_output_from_buf(out_buf, chars_written);
+        writec('\n');
+    } else {
+        werr(input_err);
+        return 1;
+    }
+
 
     return 0;
 }
