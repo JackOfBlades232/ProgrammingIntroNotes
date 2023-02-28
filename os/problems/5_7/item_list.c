@@ -109,7 +109,7 @@ int join_lists(const char *in_filepath1, const char *in_filepath2,
     if (in_fd2 == -1)
         goto join_error;
 
-    out_fd = open(out_filepath, O_WRONLY | O_CREAT, 0666);
+    out_fd = open(out_filepath, O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if (out_fd == -1)
         goto join_error;
 
