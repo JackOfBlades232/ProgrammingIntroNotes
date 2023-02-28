@@ -11,5 +11,5 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    return outer_join(argv[1], argv[2], argv[3]) ? 0 : 2;
+    return join_lists(argv[1], argv[2], argv[3]) ? 0 : 2;
 }
