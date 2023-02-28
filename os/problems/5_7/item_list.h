@@ -17,4 +17,7 @@ int add_record(const char *filepath, const char *item_name);
 int query_record(const char *filepath, const char *item_name);
 int list_records(const char *filepath, FILE *out_f);
 
+int outer_join(const char *in_filepath1, const char *in_filepath2, 
+        const char *out_filepath);
+
 #endif
