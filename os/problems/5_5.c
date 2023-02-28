@@ -4,7 +4,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdio.h>
 
 enum {
     bufsize = 4096
