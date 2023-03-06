@@ -1,0 +1,32 @@
+5.10
+start
+child
+finish
+parent 
+finish
+
+start
+child
+parent 
+finish
+finish
+
+start
+parent 
+child
+finish
+finish
+
+start
+parent 
+finish
+child
+finish
+
+5.11
+1) return val of wait is not analyzed (there might be no children)
+2) status has no initialized memory, and wait is supposed to write it somewhere
+
+except error handling, do this instead:
+int status;
+wait(&status);
