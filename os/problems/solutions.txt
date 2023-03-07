@@ -30,3 +30,6 @@ finish
 except error handling, do this instead:
 int status;
 wait(&status);
+
+5.14
+wait4(-1, NULL, WNOHANG, NULL);
