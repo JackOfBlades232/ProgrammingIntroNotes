@@ -1,4 +1,4 @@
-/* term/termios.c */
+/* termios.c */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,7 +11,9 @@ int main()
      * int c_iflag; input flags (info from term)
      * int c_oflag; output flags (to term)
      * int c_cflag; mostly used for work with physical line
-     * int c_lflag; on the contrary, local options mostly here */
+     * int c_lflag; on the contrary, local options mostly here 
+     * char c_cc[NCCS]; array of symbol codes for special actions
+     * */
 
     return 0;
 }
