@@ -5,6 +5,7 @@
 #include <string.h>
 
 #define CTRL_D '\4'
+#define DEL 127
 
 enum { bufsize = 256 };
 enum { match_cap = 128 };
@@ -16,6 +17,16 @@ int add_char_to_buf(char **bufpos, char *buf, char c)
 
     **bufpos = c;
     (*bufpos)++;
+    **bufpos = '\0';
+    return 1;
+}
+
+int remove_char_from_buf(char **bufpos, char *buf)
+{
+    if (*bufpos == buf)
+        return 0;
+
+    (*bufpos)--;
     **bufpos = '\0';
     return 1;
 }
@@ -123,9 +134,15 @@ int process_input(FILE *out_f, FILE *dict_f)
     *bufp = '\0';
 
     while ((c = getchar()) != EOF) {
-        if (c == CTRL_D && buf == bufp) /* for when eof is not working */
+        if (c == CTRL_D && buf == bufp) /* eof emulation */
             break;
+        else if (c == '\b' || c == DEL) { /* backspace/del */
+            if (remove_char_from_buf(&bufp, buf))
+                printf("\b \b");
 
+            continue;
+        }
+            
         if (cur_word != NULL) {
             if (c == '\t') {
                 if (perform_lookup(&bufp, buf, cur_word, dict_f))
@@ -184,10 +201,10 @@ int main(int argc, char **argv)
     tcgetattr(0, &ts1); 
     memcpy(&ts2, &ts1, sizeof(ts1)); 
     ts1.c_lflag &= ~(ICANON | ECHO);
-    ts1.c_lflag |= ISIG;
     ts1.c_cc[VMIN] = 1;
     ts1.c_cc[VTIME] = 0;
     ts1.c_cc[VEOF] = 0;
+    ts1.c_cc[VERASE] = 0;
     tcsetattr(0, TCSANOW, &ts1); 
 
     exit_code = process_input(out_f, dict_f) ? 0 : 5;
