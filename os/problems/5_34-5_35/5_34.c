@@ -4,46 +4,33 @@
 #include <termios.h>
 #include <string.h>
 
-#define CTRL_D '\4'
+enum {
+    del = 127
+};
 
-enum { bufsize = 256 };
-enum { match_cap = 128 };
+enum { 
+    io_bufsize = 512,
+    match_bufsize = 128 
+};
 
-int add_char_to_buf(char **bufpos, char *buf, char c)
+void putchar_now(int c)
 {
-    if (*bufpos - buf >= bufsize-1)
-        return 0;
-
-    **bufpos = c;
-    (*bufpos)++;
-    **bufpos = '\0';
-    return 1;
+    putchar(c);
+    fflush(stdout);
 }
 
-int char_is_inword(char c)
-{
-    return c != ' ' && c != '\t' && c != '\n' && c != '\r';
-}
-
-int output_to_eol(FILE *f, char **bufpos, char *buf)
+void output_to_eol(FILE *f)
 {
     int c;
     while ((c = fgetc(f)) != EOF) {
         if (c == '\n')
             break;
-        putchar(c);
-
-        if (bufpos != NULL && buf != NULL) {
-            if (!add_char_to_buf(bufpos, buf, c))
-                return 0;
-        }
+        putchar_now(c);
     }
-
-    return 1;
 }
 
-int look_up_word_by_prefix(FILE *dict, const char *prefix,
-        long (*match_positions)[match_cap], long *last_match_end)
+int look_up_word_by_prefix(FILE *dict, const char *prefix, int prefix_len,
+        long (*match_positions)[match_bufsize], long *last_match_end)
 {
     int c;
     int line_may_match;
@@ -57,8 +44,8 @@ int look_up_word_by_prefix(FILE *dict, const char *prefix,
     **match_positions = ftell(dict);
     *last_match_end = -1;
     while ((c = fgetc(dict)) != EOF) {
-        if (line_may_match && *prefix_p == '\0') {
-            if (num_matches < match_cap-1) {
+        if (line_may_match && prefix_p-prefix >= prefix_len) {
+            if (num_matches < match_bufsize-1) {
                 *last_match_end = ftell(dict)-1;
                 num_matches++;
             } else
@@ -82,75 +69,56 @@ int look_up_word_by_prefix(FILE *dict, const char *prefix,
     return num_matches;
 }
 
-int perform_lookup(char **bufpos, char *buf, char *cur_word, FILE *dict_f)
+void complete_word(long dict_pos, FILE *dict_f, char **bufpos, char *buf)
 {
-    long match_positions[match_cap];
-    long last_match_end;
-    int i;
-
-    int num_matches = look_up_word_by_prefix(dict_f, cur_word,
-            &match_positions, &last_match_end);
-    
-    if (num_matches > 1) {
-        putchar('\n');
-        for (i = 0; i < num_matches; i++) {
-            fseek(dict_f, match_positions[i], SEEK_SET);
-            output_to_eol(dict_f, NULL, NULL);
-            putchar(' ');
-        }
-        putchar('\n');
-        printf("%s", buf);
-        return 1;
-    } 
-
-    if (num_matches == 1) {
-        fseek(dict_f, last_match_end, SEEK_SET);
-        return output_to_eol(dict_f, bufpos, buf);
-    }
-
-    return num_matches == 0;
+    fseek(dict_f, dict_pos, SEEK_SET);
+    output_to_eol(dict_f);
 }
 
-int process_input(FILE *out_f, FILE *dict_f)
+void output_multiple_matches(long *matches, int match_cnt, FILE *dict_f)
 {
-    int c;
+    int i;
+    for (i = 0; i < match_cnt; i++) {
+        fseek(dict_f, matches[i], SEEK_SET);
+        output_to_eol(dict_f);
+        putchar_now(' ');
+    }
+    putchar_now('\n');
+}
 
-    char buf[bufsize];
-    char *bufp, *cur_word;
+/* test: 1 line */
+int parse_input(FILE *out_f, FILE *dict_f)
+{
+    char read_buf[io_bufsize];
+    char out_f_buf[io_bufsize+1]; /* for \0 */
 
-    bufp = buf;
-    cur_word = NULL;
-    *bufp = '\0';
-
-    while ((c = getchar()) != EOF) {
-        if (c == CTRL_D && buf == bufp) /* for when eof is not working */
-            break;
-
-        if (cur_word != NULL) {
-            if (c == '\t') {
-                if (perform_lookup(&bufp, buf, cur_word, dict_f))
-                    continue;
-                else
-                    return 0;
+    int read_res;
+    char *r_bufp, *f_bufp;
+    
+    f_bufp = out_f_buf;
+    while ((read_res = read(0, read_buf, sizeof(read_buf))) > 0) {
+        for (r_bufp = read_buf; r_bufp-read_buf < read_res; r_bufp++) {
+            switch (*r_bufp) {
+                case '\n':
+                    /* flush line and reset cur buf */
+                    break;
+                case '\t':
+                    /* look up current word prefix (check from out buf) */
+                    break;
+                case '\b':
+                    /* remove from out buf, "\b \b" to screen */
+                    break;
+                case del:
+                    /* same as \b */
+                    break;
+                default:
+                    /* put to out buf and to screen */
+                    break;
             }
-
-            if (c == ' ')
-                cur_word = NULL;
-        } else if (char_is_inword(c))
-            cur_word = bufp;
-
-        putchar(c);
-        add_char_to_buf(&bufp, buf, c);
-
-        if (c == '\n') {
-            fputs(buf, out_f);
-            bufp = buf;
-            cur_word = NULL;
-            *bufp = '\0';
         }
     }
 
-    return 1;
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -183,16 +151,14 @@ int main(int argc, char **argv)
 
     tcgetattr(0, &ts1); 
     memcpy(&ts2, &ts1, sizeof(ts1)); 
-    ts1.c_lflag &= ~(ICANON | ECHO);
+    ts1.c_lflag &= ~(ICANON | IEXTEN | ECHO);
     ts1.c_lflag |= ISIG;
     ts1.c_cc[VMIN] = 1;
     ts1.c_cc[VTIME] = 0;
     ts1.c_cc[VEOF] = 0;
     tcsetattr(0, TCSANOW, &ts1); 
 
-    exit_code = process_input(out_f, dict_f) ? 0 : 5;
-    if (exit_code != 0)
-        fprintf(stderr, "Line/match cap exceeded\n");
+    exit_code = parse_input(out_f, dict_f);
 
     tcsetattr(0, TCSANOW, &ts2); 
     fclose(dict_f);
