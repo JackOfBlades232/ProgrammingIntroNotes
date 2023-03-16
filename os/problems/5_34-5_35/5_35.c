@@ -179,7 +179,7 @@ void output_multiple_matches(long *matches, size_t match_cnt,
     printf("%s", buf);
 }
 
-/* void perform_lookup(char **bufpos, char **bufend,
+void perform_lookup(char **bufpos, char **bufend,
         char *buf, size_t bufsize, FILE *dict_f)
 {
     char *prefix = *bufpos;
@@ -206,10 +206,10 @@ void output_multiple_matches(long *matches, size_t match_cnt,
     if (match_cnt == -1)
         putstr_now("\nToo many options to display\n");
     else if (match_cnt == 1)
-        complete_word(last_match_end, dict_f, bufpos, buf, bufsize);
+        complete_word(last_match_end, dict_f, bufpos, bufend, buf, bufsize);
     else if (match_cnt > 1)
         output_multiple_matches(match_positions, match_cnt, dict_f, buf);
-} */
+}
 
 enum arrow_type parse_escape_seq(char *bufp, char *buf, size_t bufsize)
 {
@@ -258,8 +258,8 @@ int parse_input(FILE *out_f, FILE *dict_f)
                     break;
                 case '\t':
                     /* look up current word prefix (check from out buf) */
-                    /* perform_lookup(&f_bufp, out_f_buf,
-                            sizeof(out_f_buf), dict_f); */
+                    perform_lookup(&f_bufp, &f_bufend, out_f_buf,
+                            sizeof(out_f_buf), dict_f);
                     break;
                 case '\b':
                     /* remove from out buf, "\b \b" to screen */
