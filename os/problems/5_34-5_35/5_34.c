@@ -21,24 +21,61 @@ void putchar_now(int c)
     fflush(stdout);
 }
 
-void output_to_eol(FILE *f)
+void putstr_now(const char *s)
+{
+    printf("%s", s);
+    fflush(stdout);
+}
+
+int char_is_separator(int c)
+{
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
+int add_char_to_buf(char **bufpos, char *buf, size_t bufsize, char c)
+{
+    if (*bufpos - buf >= bufsize-1)
+        return 0;
+
+    **bufpos = c;
+    (*bufpos)++;
+    **bufpos = '\0';
+    return 1;
+}
+
+int remove_char_from_buf(char **bufpos, char *buf, size_t bufsize)
+{
+    if (*bufpos - buf <= 0)
+        return 0;
+
+    (*bufpos)--;
+    **bufpos = '\0';
+    return 1;
+}
+
+void output_to_eol(FILE *f, char **bufpos, char *buf, size_t bufsize)
 {
     int c;
     while ((c = fgetc(f)) != EOF) {
         if (c == '\n')
             break;
-        putchar_now(c);
+
+        if (bufpos != NULL) { /* remake condition */
+            if (add_char_to_buf(bufpos, buf, bufsize, c)) 
+                putchar_now(c);
+        } else
+            putchar_now(c);
     }
 }
 
-int look_up_word_by_prefix(FILE *dict, const char *prefix, int prefix_len,
+size_t look_up_word_by_prefix(FILE *dict, const char *prefix, size_t prefix_len,
         long (*match_positions)[match_bufsize], long *last_match_end)
 {
     int c;
     int line_may_match;
     const char *prefix_p = prefix;
 
-    int num_matches = 0;
+    size_t num_matches = 0;
    
     fseek(dict, 0, SEEK_SET);
 
@@ -71,50 +108,62 @@ int look_up_word_by_prefix(FILE *dict, const char *prefix, int prefix_len,
     return num_matches;
 }
 
-void complete_word(long dict_pos, FILE *dict_f)
+void complete_word(long dict_pos, FILE *dict_f, 
+        char **bufpos, char *buf, size_t bufsize)
 {
     fseek(dict_f, dict_pos, SEEK_SET);
-    output_to_eol(dict_f);
+    output_to_eol(dict_f, bufpos, buf, bufsize);
 }
 
-void output_multiple_matches(long *matches, int match_cnt, FILE *dict_f)
+void output_multiple_matches(long *matches, size_t match_cnt, 
+        FILE *dict_f, char *buf)
 {
     int i;
+    putchar_now('\n');
     for (i = 0; i < match_cnt; i++) {
         fseek(dict_f, matches[i], SEEK_SET);
-        output_to_eol(dict_f);
+        output_to_eol(dict_f, NULL, NULL, 0);
         putchar_now(' ');
     }
     putchar_now('\n');
+    putstr_now(buf);
 }
 
-int add_char_to_buf(char **bufpos, char *buf, size_t bufsize, char c)
+void perform_lookup(char **bufpos, char *buf, size_t bufsize, FILE *dict_f)
 {
-    if (*bufpos - buf >= bufsize-1)
-        return 0;
+    char *prefix = *bufpos;
+    size_t prefix_len;
 
-    **bufpos = c;
-    (*bufpos)++;
-    **bufpos = '\0';
-    return 1;
-}
+    size_t match_cnt;
+    long match_positions[match_bufsize];
+    long last_match_end;
 
-int remove_char_from_buf(char **bufpos, char *buf, size_t bufsize)
-{
-    if (*bufpos - buf <= 0)
-        return 0;
+    while (prefix-buf > 0) {
+        prefix--;
+        if (char_is_separator(*prefix)) {
+            prefix++;
+            break;
+        }
+    }
 
-    (*bufpos)--;
-    **bufpos = '\0';
-    return 1;
+    prefix_len = *bufpos - prefix;
+    match_cnt = look_up_word_by_prefix(
+            dict_f, prefix, prefix_len,
+            &match_positions, &last_match_end
+            );
+
+    if (match_cnt == -1)
+        putstr_now("\nToo many options to display\n");
+    else if (match_cnt == 1)
+        complete_word(last_match_end, dict_f, bufpos, buf, bufsize);
+    else if (match_cnt > 1)
+        output_multiple_matches(match_positions, match_cnt, dict_f, buf);
 }
 
 void process_backspace(char **bufpos, char *buf, size_t bufsize)
 {
-    if (remove_char_from_buf(bufpos, buf, bufsize)) {
-        printf("\b \b");
-        fflush(stdout);
-    }
+    if (remove_char_from_buf(bufpos, buf, bufsize))
+        putstr_now("\b \b");
 }
 
 /* test: 1 line */
@@ -142,6 +191,8 @@ int parse_input(FILE *out_f, FILE *dict_f)
                     break;
                 case '\t':
                     /* look up current word prefix (check from out buf) */
+                    perform_lookup(&f_bufp, out_f_buf,
+                            sizeof(out_f_buf), dict_f);
                     break;
                 case '\b':
                     /* remove from out buf, "\b \b" to screen */
