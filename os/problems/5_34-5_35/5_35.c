@@ -6,6 +6,7 @@
 #include <string.h>
 
 enum {
+    ctrl_w = 23,
     del = 127
 };
 
@@ -16,6 +17,11 @@ enum {
 };
 
 enum arrow_type { left, right, invalid };
+
+struct positional_buffer {
+    char *buf, *bufpos, *bufend;
+    size_t bufsize;
+};
 
 void putchar_now(int c)
 {
@@ -34,85 +40,133 @@ int char_is_separator(int c)
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
-size_t add_char_to_buf(char **bufpos, char **bufend,
-        char *buf, size_t bufsize, char c)
+void reset_buf(struct positional_buffer *pbuf)
+{
+    pbuf->bufpos = pbuf->buf;
+    pbuf->bufend = pbuf->buf;
+    *(pbuf->buf) = '\0';
+}
+
+void init_buf(struct positional_buffer *pbuf, char *buf, size_t bufsize)
+{
+    pbuf->bufsize = bufsize;
+    pbuf->buf = buf;
+    reset_buf(pbuf);
+}
+
+size_t add_char_to_buf(struct positional_buffer *pbuf, char c)
 {
     char *shift_p;
     size_t res;
 
-    if (*bufend - buf >= bufsize-1)
+    if (pbuf->bufend - pbuf->buf >= pbuf->bufsize - 1)
         return -1;
 
-    res = (*bufend) - (*bufpos);
-    for (shift_p = *bufend; shift_p - (*bufpos) >= 0; shift_p--)
+    res = pbuf->bufend - pbuf->bufpos;
+    for (shift_p = pbuf->bufend; shift_p - pbuf->bufpos >= 0; shift_p--)
         *(shift_p+1) = *shift_p;
 
-    **bufpos = c;
-    (*bufpos)++;
-    (*bufend)++;
+    *(pbuf->bufpos) = c;
+    pbuf->bufpos++;
+    pbuf->bufend++;
     return res;
 }
 
-size_t remove_char_from_buf(char **bufpos, char **bufend,
-        char *buf, size_t bufsize)
+size_t remove_char_from_buf(struct positional_buffer *pbuf)
 {
     char *shift_p;
     size_t res;
 
-    if (*bufpos - buf <= 0)
+    if (pbuf->bufpos - pbuf->buf <= 0)
         return -1;
 
-    res = (*bufend) - (*bufpos);
-    for (shift_p = *bufpos; (*bufend) - shift_p >= 0; shift_p++)
+    res = pbuf->bufend - pbuf->bufpos;
+    for (shift_p = pbuf->bufpos; (pbuf->bufend) - shift_p >= 0; shift_p++)
         *(shift_p-1) = *shift_p;
 
-    (*bufpos)--;
-    (*bufend)--;
+    pbuf->bufpos--;
+    pbuf->bufend--;
     return res;
 }
 
-void redraw_buf(char *bufp, int add_space)
+size_t remove_word_from_buf(struct positional_buffer *pbuf)
 {
-    int i;
-    size_t redraw_part_len = strlen(bufp) + (add_space ? 1 : 0);
+    char *shift_p;
+    size_t shift;
+
+    if (pbuf->bufpos - pbuf->buf <= 0)
+        return -1;
+
+    shift_p = pbuf->bufpos - 1;
+    while (char_is_separator(*shift_p) && shift_p - pbuf->buf > 0)
+        shift_p--;
+    while (!char_is_separator(*shift_p) && shift_p - pbuf->buf > 0)
+        shift_p--;
+    if (char_is_separator(*shift_p))
+        shift_p++;
+
+    shift = pbuf->bufpos - shift_p;
+    for (; (pbuf->bufend) - shift_p >= shift; shift_p++)
+        *shift_p = *(shift_p+shift);
+
+    pbuf->bufpos -= shift;
+    pbuf->bufend -= shift;
+    return shift;
+}
+
+void redraw_buf(char *bufp, int num_spaces)
+{
+    size_t i;
+    size_t redraw_part_len = strlen(bufp) + num_spaces;
     printf("%s", bufp);
-    if (add_space)
+    for (i = 0; i < num_spaces; i++)
         putchar(' ');
     for (i = 0; i < redraw_part_len; i++)
         putchar('\b');
 }
 
-void add_char(char **bufpos, char **bufend,
-        char *buf, size_t bufsize, char c)
+void add_char(struct positional_buffer *pbuf, char c)
 {
-    size_t add_res = add_char_to_buf(bufpos, bufend, buf, bufsize, c);
+    size_t add_res = add_char_to_buf(pbuf, c);
     if (add_res == -1)
         return;
 
     putchar(c);
     if (add_res > 0)
-        redraw_buf(*bufpos, 0);
+        redraw_buf(pbuf->bufpos, 0);
 }
 
-void rm_char(char **bufpos, char **bufend, char *buf, size_t bufsize)
+void rm_char(struct positional_buffer *pbuf)
 {
-    size_t rm_res = remove_char_from_buf(bufpos, bufend, buf, bufsize);
+    size_t rm_res = remove_char_from_buf(pbuf);
     if (rm_res == -1)
         return;
 
-    redraw_buf(*bufpos, 1);
+    putchar('\b');
+    redraw_buf(pbuf->bufpos, 1);
 }
 
-void output_to_eol(FILE *f, char **bufpos, char **bufend,
-        char *buf, size_t bufsize)
+void rm_word(struct positional_buffer *pbuf)
+{
+    size_t i;
+    size_t rm_shift = remove_word_from_buf(pbuf);
+    if (rm_shift == -1)
+        return;
+
+    for (i = 0; i < rm_shift; i++)
+        putchar('\b');
+    redraw_buf(pbuf->bufpos, rm_shift);
+}
+
+void output_to_eol(FILE *f, struct positional_buffer *pbuf)
 {
     int c;
     while ((c = fgetc(f)) != EOF) {
         if (c == '\n')
             break;
 
-        if (bufpos != NULL) /* remake condition */
-            add_char(bufpos, bufend, buf, bufsize, c);
+        if (pbuf != NULL)
+            add_char(pbuf, c);
         else
             putchar(c);
     }
@@ -158,38 +212,38 @@ size_t look_up_word_by_prefix(FILE *dict, const char *prefix, size_t prefix_len,
     return num_matches;
 }
 
-void complete_word(long dict_pos, FILE *dict_f, 
-        char **bufpos, char **bufend, char *buf, size_t bufsize)
+void complete_word(long dict_pos, FILE *dict_f, struct positional_buffer *pbuf)
 {
     fseek(dict_f, dict_pos, SEEK_SET);
-    output_to_eol(dict_f, bufpos, bufend, buf, bufsize);
+    output_to_eol(dict_f, pbuf);
 }
 
 void output_multiple_matches(long *matches, size_t match_cnt, 
-        FILE *dict_f, char *buf)
+        FILE *dict_f, struct positional_buffer *pbuf)
 {
     int i;
     putchar('\n');
     for (i = 0; i < match_cnt; i++) {
         fseek(dict_f, matches[i], SEEK_SET);
-        output_to_eol(dict_f, NULL, NULL, NULL, 0);
+        output_to_eol(dict_f, NULL);
         putchar(' ');
     }
     putchar('\n');
-    printf("%s", buf);
+    printf("%s", pbuf->buf);
+    for (i = 0; i < pbuf->bufend - pbuf->bufpos; i++)
+        putchar('\b');
 }
 
-void perform_lookup(char **bufpos, char **bufend,
-        char *buf, size_t bufsize, FILE *dict_f)
+void perform_lookup(struct positional_buffer *pbuf, FILE *dict_f)
 {
-    char *prefix = *bufpos;
+    char *prefix = pbuf->bufpos;
     size_t prefix_len;
 
     size_t match_cnt;
     long match_positions[match_bufsize];
     long last_match_end;
 
-    while (prefix-buf > 0) {
+    while (prefix - pbuf->buf > 0) {
         prefix--;
         if (char_is_separator(*prefix)) {
             prefix++;
@@ -197,7 +251,7 @@ void perform_lookup(char **bufpos, char **bufend,
         }
     }
 
-    prefix_len = *bufpos - prefix;
+    prefix_len = pbuf->bufpos - prefix;
     match_cnt = look_up_word_by_prefix(
             dict_f, prefix, prefix_len,
             &match_positions, &last_match_end
@@ -206,9 +260,9 @@ void perform_lookup(char **bufpos, char **bufend,
     if (match_cnt == -1)
         putstr_now("\nToo many options to display\n");
     else if (match_cnt == 1)
-        complete_word(last_match_end, dict_f, bufpos, bufend, buf, bufsize);
+        complete_word(last_match_end, dict_f, pbuf);
     else if (match_cnt > 1)
-        output_multiple_matches(match_positions, match_cnt, dict_f, buf);
+        output_multiple_matches(match_positions, match_cnt, dict_f, pbuf);
 }
 
 enum arrow_type parse_escape_seq(char *bufp, char *buf, size_t bufsize)
@@ -228,69 +282,107 @@ enum arrow_type parse_escape_seq(char *bufp, char *buf, size_t bufsize)
         return invalid;
 }
 
+void flush_line_to_output(struct positional_buffer *out_pbuf, FILE *f)
+{
+    fprintf(f, "%s\n", out_pbuf->buf);
+    reset_buf(out_pbuf);
+    putchar_now('\n');
+}
+
+void add_char_with_esc(struct positional_buffer *out_pbuf, char c, int *acc_esc)
+{
+    if (*acc_esc > 0) {
+        if (*acc_esc >= 2)
+            add_char(out_pbuf, '[');
+        *acc_esc = 0;
+    }
+
+    add_char(out_pbuf, c);
+}
+
+void process_esc_bracket(struct positional_buffer *out_pbuf, int *acc_esc)
+{
+    if (*acc_esc == 1)
+        (*acc_esc)++;
+    else
+        add_char_with_esc(out_pbuf, '[', acc_esc);
+}
+
+void execute_arrow(struct positional_buffer *out_pbuf, enum arrow_type type)
+{
+    if (type == left && out_pbuf->bufpos - out_pbuf->buf > 0) {
+        out_pbuf->bufpos--;
+        putchar_now('\b');
+    } else if (type == right && out_pbuf->bufend - out_pbuf->bufpos > 0) {
+        putchar_now(*out_pbuf->bufpos);
+        out_pbuf->bufpos++;
+    }
+}
+
+void process_esc_letter(struct positional_buffer *out_pbuf, 
+        char c, int *acc_esc)
+{
+    enum arrow_type type = c == 'D' ? left : (c == 'C' ? right : invalid);
+    if (type != invalid && *acc_esc == 2) {
+        execute_arrow(out_pbuf, type);
+        *acc_esc = 0;
+    } else
+        add_char_with_esc(out_pbuf, c, acc_esc);
+}
+
 /* test: 1 line */
 int parse_input(FILE *out_f, FILE *dict_f)
 {
     char read_buf[read_bufsize];
     char out_f_buf[output_bufsize];
+    struct positional_buffer out_pbuf;
 
     int read_res;
     char *r_bufp;
-    char *f_bufp, *f_bufend;
 
-    enum arrow_type arr_t;
-    
-    f_bufp = f_bufend = out_f_buf;
-    *f_bufend = '\0';
+    int arrow_chars_acc;
+
+    init_buf(&out_pbuf, out_f_buf, sizeof(out_f_buf));
+    arrow_chars_acc = 0;
     while ((read_res = read(0, read_buf, sizeof(read_buf))) > 0) {
         for (r_bufp = read_buf; r_bufp-read_buf < read_res; r_bufp++) {
             switch (*r_bufp) {
                 case '\4': /* CTRL_D */
-                    if (f_bufend == out_f_buf)
+                    if (out_pbuf.bufend == out_pbuf.buf)
                         goto end_of_file;
                     break;
                 case '\n':
-                    /* flush line and reset cur buf */
-                    fprintf(out_f, "%s\n", out_f_buf);
-                    f_bufp = f_bufend = out_f_buf;
-                    *f_bufend = '\0';
-                    putchar_now('\n');
+                    flush_line_to_output(&out_pbuf, out_f);
                     break;
                 case '\t':
-                    /* look up current word prefix (check from out buf) */
-                    perform_lookup(&f_bufp, &f_bufend, out_f_buf,
-                            sizeof(out_f_buf), dict_f);
+                    perform_lookup(&out_pbuf, dict_f);
                     break;
                 case '\b':
-                    /* remove from out buf, "\b \b" to screen */
-                    putchar('\b');
-                    rm_char(&f_bufp, &f_bufend, out_f_buf, sizeof(out_f_buf));
+                    rm_char(&out_pbuf);
                     break;
                 case del:
-                    /* same as \b */
-                    putchar('\b');
-                    rm_char(&f_bufp, &f_bufend, out_f_buf, sizeof(out_f_buf));
+                    rm_char(&out_pbuf);
                     break;
-                case '\e': /* escape seq */
-                    /* test */
-                    arr_t = 
-                        parse_escape_seq(r_bufp, read_buf, sizeof(read_buf));
-                    if (arr_t == invalid)
-                        break;
-                    
-                    r_bufp += 2;
-                    if (arr_t == left && f_bufp-out_f_buf > 0) {
-                        f_bufp--;
-                        putchar_now('\b');
-                    } else if (f_bufend-f_bufp > 0) {
-                        putchar_now(*f_bufp);
-                        f_bufp++;
-                    }
+                case ctrl_w:
+                    rm_word(&out_pbuf);
                     break;
+
+                /* escape seq for arrows */    
+                case '\e': 
+                    arrow_chars_acc = 1;
+                    break;
+                case '[':
+                    process_esc_bracket(&out_pbuf, &arrow_chars_acc);
+                    break;
+                case 'D':
+                    process_esc_letter(&out_pbuf, *r_bufp, &arrow_chars_acc);
+                    break;
+                case 'C':
+                    process_esc_letter(&out_pbuf, *r_bufp, &arrow_chars_acc);
+                    break;
+
                 default:
-                    /* put to out buf and to screen */
-                    add_char(&f_bufp, &f_bufend, out_f_buf,
-                            sizeof(out_f_buf), *r_bufp);
+                    add_char_with_esc(&out_pbuf, *r_bufp, &arrow_chars_acc);
                     break;
             }
 
