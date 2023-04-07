@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-// #define INET
+#define INET
 
 #ifdef INET
     #include <netinet/in.h>

@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-//#define INET
+#define INET
 
 #ifdef INET
     #include <netinet/in.h>
@@ -73,6 +73,10 @@ int main(int argc, char **argv) {
         return -3;
     }
 
+#ifdef INET
+    printf("IP-Adr: %s, port: %hd\n", inet_ntoa(addr.sin_addr), addr.sin_port);
+#endif
+
     socklen_t from_len;
     char buf[128];
     int bytes_rec;
@@ -80,9 +84,9 @@ int main(int argc, char **argv) {
     /* terminates on recieving zero dgramm */
     while ((bytes_rec = recvfrom(sock_fd, buf, sizeof(buf), 0, (struct sockaddr *) &from, &from_len)) > 0) {
 #ifdef INET
-        printf("IP-Adr: %s, port: %hd\n", inet_ntoa(from.sin_addr), from.sin_port);
+        printf("Recieved dgram, IP-Adr: %s, port: %hd\n", inet_ntoa(from.sin_addr), from.sin_port);
 #else
-        printf("Local socket path: %s\n", from.sun_path);
+        printf("Recieved dgram, socket path: %s\n", from.sun_path);
 #endif
         for (size_t i = 0; i < bytes_rec; i++) {
             if (buf[i] != '\n' && buf[i] != '\t' && (buf[i] < 32 || buf[i] > 126))
