@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 
     to.sin_family = AF;
     int ok = sscanf(argv[2], "%hd", &to.sin_port) &&
-             inet_aton(argv[1], &addr.sin_addr);
+             inet_aton(argv[1], &to.sin_addr);
     if (!ok) {
         fprintf(stderr, "Invalid port or ip-address arg\n");
         return -1;
