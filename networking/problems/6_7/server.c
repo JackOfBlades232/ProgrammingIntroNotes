@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     signal(SIGINT, int_handler);
     signal(SIGTERM, int_handler);
 
-    daemonize();
+    // daemonize();
 
     sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock_fd == -1) {
@@ -97,12 +97,10 @@ int main(int argc, char **argv) {
                 dgram_cnt, total_dgram_size);
 
         size_t msg_len = strlen(response_buf);
-        res = sendto(sock_fd, response_buf, msg_len, 0, &from, fromlen);
-        if (res != msg_len)
-            break;
+        sendto(sock_fd, response_buf, msg_len, 0, &from, fromlen);
     }
 
-    fprintf(stderr, "Error while waiting for/sending dgram\n");
+    fprintf(stderr, "Error while waiting dgram\n");
     close(sock_fd);
     return EXIT_FAILURE;
 }
