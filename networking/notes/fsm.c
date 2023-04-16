@@ -249,7 +249,56 @@ void server_close_session(struct server *serv, int sd)
     server_remove_session(serv, sd);
 }
 
-int main() 
+int main(int argc, char **argv) 
 {
-    // write main loop
+    struct server serv;
+    long port;
+    char *endptr;
+
+    if (argc != 2) {
+        fprintf(stderr, "Args: <port>\n");
+        return -1;
+    }
+
+    port = strtol(argv[1], &endptr, 10);
+    if (!*argv[1] || *endptr) {
+        fprintf(stderr, "Invalid port number\n");
+        return -1;
+    }
+        
+    if (!server_init(&serv, port))
+        return -1;
+
+    for (;;) {
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(serv.ls, &readfds);
+
+        int maxfd = serv.ls;
+        for (int i = 0; i < serv.sessions_size; i++) {
+            if (serv.sessions[i]) {
+                FD_SET(i, &readfds);
+                if (i > maxfd)
+                    maxfd = i;
+            }
+        }
+
+        int sr = select(maxfd+1, &readfds, NULL, NULL, NULL);
+        if (sr == -1) {
+            perror("select");
+            return -1;
+        }
+
+        if (FD_ISSET(serv.ls, &readfds))
+            server_accept_client(&serv);
+        for (int i = 0; i < serv.sessions_size; i++) {
+            if (serv.sessions[i] && FD_ISSET(i, &readfds)) {
+                int ssr = session_do_read(serv.sessions[i]);
+                if (!ssr)
+                    server_close_session(&serv, i);
+            }
+        }
+    }
+
+    return 0;
 }
