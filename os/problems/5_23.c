@@ -1,4 +1,4 @@
-/* 5_22.c */
+/* 5_23.c */
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
