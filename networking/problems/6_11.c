@@ -11,30 +11,22 @@
 
 enum { bufsize = 256 };
 
-int open_fifo(const char *filenm, int flags)
-{
-    int fd = open(filenm, flags);
-    if (fd == -1)
-        fd = mkfifo(filenm, 0666);
-    return fd;
-}
-
 int main(int argc, char **argv)
 {
     int result = 0;
-    int in_fd = -1, out_fd = -1;
 
     if (argc != 3) {
         fprintf(stderr, "Usage: <in_fifonm> <out_fifonm>\n");
         return_defer(1);
     }
 
-    in_fd = open_fifo(argv[1], O_RDONLY|O_NONBLOCK); // to avoid mutual blocking
+    int in_fd = -1, out_fd = -1;
+    in_fd = open(argv[1], O_RDONLY|O_NONBLOCK); // to avoid mutual blocking
     if (in_fd == -1) {
         perror(argv[1]);
         return_defer(2);
     }
-    out_fd = open_fifo(argv[2], O_WRONLY);
+    out_fd = open(argv[2], O_WRONLY);
     if (out_fd == -1) {
         perror(argv[2]);
         return_defer(2);
@@ -46,7 +38,7 @@ int main(int argc, char **argv)
         FD_SET(0, &readfds);
         FD_SET(in_fd, &readfds);
 
-        int sr = select(2, &readfds, NULL, NULL, NULL);
+        int sr = select(in_fd+1, &readfds, NULL, NULL, NULL);
         if (sr == -1) {
             perror("select");
             return_defer(3);
@@ -61,10 +53,8 @@ int main(int argc, char **argv)
                 return_defer(4);
             } else if (read_res == 0) {
                 return_defer(0);
-            } else {
-                // TODO: process write_res?
+            } else
                 write(out_fd, stdin_buf, read_res);
-            }
         }
         if (FD_ISSET(in_fd, &readfds)) {
             read_res = read(in_fd, stdin_buf, sizeof(stdin_buf));
