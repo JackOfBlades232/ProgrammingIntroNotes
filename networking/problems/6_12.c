@@ -19,7 +19,7 @@ enum {
     session_bufsize = 64
 };
 
-struct session {
+struct session_buf {
     char buf[session_bufsize];
     int buf_used;
 };
@@ -93,8 +93,7 @@ int main(int argc, char **argv)
     listen(ls, listen_queue_len);
 
     int sessions_cap = init_sessions_cap;
-    struct session **sessions = calloc(sessions_cap, sizeof(struct session *));
-
+    struct session_buf **sessions = calloc(sessions_cap, sizeof(*sessions));
     for (;;) {
         int fd, res;
         fd_set readfds;
@@ -147,7 +146,7 @@ int main(int argc, char **argv)
         }
 
         for (fd = 0; fd < sessions_cap; fd++) {
-            struct session *s = sessions[fd];
+            struct session_buf *s = sessions[fd];
             if (s && FD_ISSET(fd, &readfds)) {
                 int bufp = s->buf_used;
                 int rc = read(fd, s->buf + bufp, session_bufsize-bufp);
