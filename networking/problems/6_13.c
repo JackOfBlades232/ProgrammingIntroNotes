@@ -1,4 +1,4 @@
-/* 6_12.c */
+/* 6_13.c */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -12,6 +12,7 @@
 
 #define return_defer(res) result = res; goto defer
 #define max(a, b) (a > b ? a : b) 
+#define streq(s1, s2) strcmp(s1, s2) == 0
 
 enum { 
     listen_queue_len = 16, 
@@ -19,23 +20,29 @@ enum {
     session_bufsize = 64
 };
 
+enum command_type { up, down, show, unknown };
+
 struct session_buf {
     char buf[session_bufsize];
     int buf_used;
 };
 
-const char msg[] = "Ok\n";
+const char ok_msg[] = "Ok\n";
+const char unknown_msg[] = "textttunknown command\n";
 
-int read_buffer_and_cut_line(char *buf, int *buf_used)
+char *extract_line_from_buf(char *buf, int *buf_used)
 {
+    char *res = NULL;
+    int bufp = 0;
     if (*buf_used == 0)
         return 0;
 
-    int bufp = 0;
-    int found = 0;
     while (bufp < *buf_used) {
         if (buf[bufp] == '\n') {
-            found = 1;
+            res = malloc(bufp+1);
+            strncpy(res, buf, bufp);
+            res[bufp] = '\0';
+
             bufp++;
             break;
         }
@@ -49,12 +56,61 @@ int read_buffer_and_cut_line(char *buf, int *buf_used)
     } else
         *buf_used = 0;
 
-    return found;
+    return res;
+}
+
+int char_is_space(char c)
+{
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
+
+char *get_stripped_str(const char *str)
+{
+    const char *start = str;
+    const char *end = str + strlen(str);
+    char *res;
+
+    while (char_is_space(*start))
+        start++;
+    if (start == end) {
+        res = malloc(1);
+        *res = '\0';
+        return res;
+    }
+
+    do {
+        end--;
+    } while (char_is_space(*end));
+    end++;
+
+    size_t len = end-start;
+    res = malloc(len+1);
+    strncpy(res, start, len);
+    return res;
+}
+
+enum command_type get_command_type(char *cmd)
+{ 
+    enum command_type type;
+    char *stripped = get_stripped_str(cmd);
+
+    if (streq(stripped, "up"))
+        type = up;
+    else if (streq(stripped, "down"))
+        type = down;
+    else if (streq(stripped, "show"))
+        type = show;
+    else
+        type = unknown;
+
+    free(stripped);
+    return type;
 }
 
 int main(int argc, char **argv) 
 {
     int result = 0;
+    int serv_val = 0;
 
     int ls = -1;
     struct sockaddr_in addr;
@@ -155,9 +211,32 @@ int main(int argc, char **argv)
                     free(s);
                     sessions[fd] = NULL;
                 } else {
+                    char *line;
+
                     s->buf_used += rc;
-                    while (read_buffer_and_cut_line(s->buf, &s->buf_used))
-                        write(fd, msg, sizeof(msg)-1);
+
+                    while ((line = extract_line_from_buf(s->buf, &s->buf_used))) {
+                        switch (get_command_type(line)) {
+                            case up:
+                                serv_val++;
+                                write(fd, ok_msg, sizeof(ok_msg)-1);
+                                break;
+                            case down:
+                                serv_val--;
+                                write(fd, ok_msg, sizeof(ok_msg)-1);
+                                break;
+                            case show: {
+                                    char numbuf[12];
+                                    sprintf(numbuf, "%d\n", serv_val);
+                                    write(fd, numbuf, strlen(numbuf));
+                                } break;
+                            case unknown:
+                                write(fd, unknown_msg, sizeof(unknown_msg)-1);
+                                break;
+                        }
+
+                        free(line);
+                    }
                 }
             }
         }
