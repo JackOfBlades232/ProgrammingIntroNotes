@@ -157,4 +157,6 @@ int main(int argc, char **argv)
         pthread_mutex_unlock(&buf_mutex);
         sleep(PAUSE_LENGTH);
     }
+
+    return 0;
 }
