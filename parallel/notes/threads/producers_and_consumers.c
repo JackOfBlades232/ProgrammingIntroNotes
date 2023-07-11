@@ -1,4 +1,4 @@
-/* parallel/producers_and_consumers.c */
+/* threads/producers_and_consumers.c */
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>

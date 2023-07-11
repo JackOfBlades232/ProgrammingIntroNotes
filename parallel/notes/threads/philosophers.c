@@ -1,4 +1,4 @@
-/* parallel/philosophers.c */
+/* threads/philosophers.c */
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>

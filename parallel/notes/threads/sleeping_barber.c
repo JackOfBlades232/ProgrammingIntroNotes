@@ -1,4 +1,4 @@
-/* parallel/sleeping_barber.c */
+/* threads/sleeping_barber.c */
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>

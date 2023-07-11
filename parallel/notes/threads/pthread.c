@@ -1,4 +1,4 @@
-/* parallel/pthread.c */
+/* threads/pthread.c */
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>

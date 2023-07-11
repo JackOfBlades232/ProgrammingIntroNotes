@@ -1,4 +1,4 @@
-/* parallel/readers_and_writers.c */
+/* threads/readers_and_writers.c */
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
