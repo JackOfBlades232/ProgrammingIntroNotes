@@ -123,8 +123,6 @@ void *session_thread_main(void *v_data)
     struct session *s = v_data;
     int fd = s->fd;
 
-    pthread_detach(pthread_self());
-
     for (;;) {
         int bufp = s->buf_used;
         int rc = read(fd, s->buf + bufp, session_bufsize-bufp);
@@ -249,6 +247,7 @@ int main(int argc, char **argv)
 
         pthread_t thr;
         pthread_create(&thr, NULL, session_thread_main, serv.sessions[fd]);
+        pthread_detach(thr);
     }
 
 defer:
