@@ -1,0 +1,21 @@
+7.01
+var 1 -- sum = 0, the summator read all three numbers before the modifier
+var 2 -- sum = -100/-200/300 -- summator read one new and two old vals
+var 3 -- sum = -300/200/100 -- summator read two new and one old val
+var 3 -- sum = 0, summator read all new vals
+
+7.02
+var 1 -- first done, then second: 150 225 225
+var 2 -- first reads y, and then second reads old y, but puts it after first: 150 250 250
+var 3 -- as var 2, but second puts y before first: 150 150 250
+var 4 -- second done, then first: 175 175 250
+var 5 -- var 2 inverted: 150 150 250
+var 6 -- var 3 inverted: 150 250 250
+all in all: 150 225 225 / 175 175 250 / 150 150 250 / 150 250 250
+
+7.03
+Suppose proc 0 set who_waits = 0 in enter_section, and then 
+it pauses and the whole enter_section of proc 1 works. In it, who_waits is
+set to 1, and since interested[0] is not yet set, proc 2 proceeds ito the
+critical zone. Then, we go back to proc 1. The who_waits is equal to 1,
+thus it too proceeds into the critical zone. Collision!
