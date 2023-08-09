@@ -24,7 +24,7 @@ read_hex:
         cmp cl, 'f'
         ja .quit
         sub cl, 'a'-10
-.mul:   shl eax, 4              ; multiply eax by 8
+.mul:   shl eax, 4              ; multiply eax by 16
         add eax, ecx            ; and add ecx to eax
         inc esi
         jmp .again
