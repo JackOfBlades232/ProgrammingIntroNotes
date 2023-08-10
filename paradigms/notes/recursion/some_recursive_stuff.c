@@ -1,0 +1,63 @@
+/* paradigms/some_recursive_stuff.c */
+#include <stdio.h>
+#include <stdlib.h>
+
+/* simple recursion: the function calls itself exactly once */
+int array_sum(const int arr[], int len)
+{
+    return len <= 0 ? 0 : *arr + array_sum(arr+1, len-1);
+}
+
+struct item {
+    int val;
+    struct item *next;
+};
+
+typedef int (*intfuncptr)(int, int);
+
+/* Reductions: left : f(f(...f(v, a1), a2) .. ), an)
+               right: f(a1, f(a2, ... , f(an, v)))..)
+    Where v is the dummy init elem */
+
+int intlist_reduce_l(intfuncptr f, int i, struct item *ls)
+{
+    return ls ? intlist_reduce_l(f, f(i, ls->val), ls->next) : i;
+}
+
+int intlist_reduce_r(intfuncptr f, int i, struct item *ls)
+{
+    return ls ? f(ls->val, intlist_reduce_r(f, i, ls->next)) : i;
+}
+
+int int_plus(int x, int y) { return x + y; }
+int int_mul(int x, int y) { return x * y; }
+int int_max(int x, int y) { return x > y ? x : y; }
+int int_zcnt_left(int n, int x) { return x == 0 ? n+1 : n; }
+int int_zcnt_right(int x, int n) { return x == 0 ? n+1 : n; }
+
+int main()
+{
+    int arr[] = { 1, 3, 5, 7, 9, -1 };
+    printf("Arr sum (rec): %d\n", array_sum(arr, sizeof(arr)/sizeof(*arr)));
+
+    struct item *ls;
+    struct item *p = NULL;
+    for (int i = 0; i < sizeof(arr)/sizeof(*arr); i++) {
+        struct item *tmp = malloc(sizeof(*tmp));
+        tmp->val = arr[i];
+        tmp->next = NULL;
+        if (p)
+            p->next = tmp;
+        else
+            ls = tmp;
+        p = tmp;
+    }
+
+    printf("List sum (red): %d\n", intlist_reduce_l(int_plus, 0, ls));
+    printf("List prod (red): %d\n", intlist_reduce_l(int_mul, 1, ls));
+    printf("List max (red): %d\n", intlist_reduce_l(int_max, ls->val, ls)); 
+    printf("List left zcnt (red): %d\n", intlist_reduce_l(int_zcnt_left, 0, ls)); 
+    printf("List right zcnt (red): %d\n", intlist_reduce_r(int_zcnt_right, 0, ls)); 
+
+    return 0;
+}
