@@ -51,6 +51,12 @@ double bar(int a, double b);
 // The __cplusplus symbol is defined in every C++ compiler, thus we use
 // this feature only when needed
 
+// One can specify default params, at the tail of param list
+void foo(int a, const char *b = "string", int c = 3)
+{
+    printf("%d %s %d\n", a, b, c);
+}
+
 int main()
 {
     print(50);
@@ -59,4 +65,11 @@ int main()
     // print(NULL) would be invalid, since 0 is both a NULL char* and an int
     // and the compiler would throw an error. It seems to understand print(0)
     // though
+
+    // Params can be ommited, but only at the tail
+    foo(1);
+    foo(1, "asdlkna");
+    foo(1, NULL, 123);
+
+    return 0;
 }
