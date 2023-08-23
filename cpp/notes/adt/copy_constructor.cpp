@@ -1,4 +1,4 @@
-/* basics/copy_constructor.cpp */
+/* adt/copy_constructor.cpp */
 #include <stdio.h>
 
 /*

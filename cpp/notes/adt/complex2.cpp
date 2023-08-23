@@ -1,4 +1,4 @@
-/* basics/complex2.cpp */
+/* adt/complex2.cpp */
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -10,7 +10,10 @@ class Complex {
     double re, im;
 
 public:
-    Complex(double a_re, double a_im) { re = a_re; im = a_im; }
+    // One can intialize fields as such:
+    // This is done for fields without default constructor, 
+    // which you thus can not assign in the constructor body
+    Complex(double a_re, double a_im) : re(a_re), im(a_im) {}
 
     // The default constructor is required for arrays and simple declarations
     // once at least one other constructor is defined
@@ -26,6 +29,11 @@ public:
     Complex(double a) { re = a; im = 0; }
     // And the explicit keyword restricts implicit casting
     explicit Complex(const char *s) { re = strlen(s); im = -re; }
+
+    // A copy constructor is always generated if it does not exist.
+    // If one wants to restrict copying, he can declare a copy constructor
+    // to be private (then the object will also not be passable by value
+    // and not returnable by value. Same with assignment
 
     // We mark all methods as const, restricting them changing members, and
     // thus allowing these methods to be called on const objects
@@ -48,20 +56,65 @@ public:
         { return Complex(re + op2.re, im + op2.im); }
     Complex operator-(const Complex &op2) const
         { return Complex(re - op2.re, im - op2.im); }
-    Complex operator*(const Complex &op2) const 
-        { return Complex(re*op2.re - im*op2.im, re*op2.im + im*op2.re); }
-    Complex operator/(const Complex &op2) const {
-        double dvs = op2.re*op2.re + op2.im*op2.im;
-        Complex res((re*op2.re + im*op2.im)/dvs,
-                    (im*op2.re - re*op2.im)/dvs);
-        return res;
-    }
 
-    void Print() const { printf("%.2lf + %.2lfi\n", re, im); };
+    // Right now in every operation the first arg must be a Complex, since
+    // the method only casts arguments, therefore, we will remake multiplication
+    // as an outside function
+
+    /* inline Complex operator*(const Complex &op2) const 
+        { return Complex(re*op2.re - im*op2.im, re*op2.im + im*op2.re); } */
+
+    // One can declare a function (or a class = all it's methods) a friend.
+    // This will allow the function to have access to the class's private
+    // members
+    friend Complex operator*(const Complex &a, const Complex &b);
+    //friend class X;
+
+    // Functions can be declared in class, but implemented outside
+    Complex operator/(const Complex &op2) const;
+
+    // Assingment operators can only be methods, obviously, and
+    // usually return a copy or a const ref of the object. Although,
+    // they may return nothing (void)
+    //
+    // Note, that assignment with same-class arg is generated implicitly
+    // if it was not defined (bitwise assignment), only if all the
+    // fields can be assigned (if there is a const field, it won't be 
+    // generated)
+    const Complex &operator=(const Complex &c)
+        { re = c.re; im = c.im; return *this; }
+    // Assignment can also take other types
+    const Complex &operator=(double x)
+        { re = x; im = 0; return *this; }
+    const Complex &operator+=(const Complex &c)
+        { re += c.re; im += c.im; return *this; }
+    const Complex &operator-=(const Complex &c)
+        { re -= c.re; im -= c.im; return *this; }
+
+    // The compiler usually tries to inline all functions in the class
+    // definition, and it can try to do so with other funcs in header
+    // we can hint it with the inline keyword
+    inline void Print() const { printf("%.2lf + %.2lfi\n", re, im); };
 };
 
 // Usually struct are used for c-style open structs with some methods (maybe),
 // and classes are used when employing OOP/ADT
+
+// Complex:: means "of namespace Complex"
+// :: without a name before refers to the global namespace
+Complex Complex::operator/(const Complex &op2) const {
+    double dvs = op2.re*op2.re + op2.im*op2.im;
+    Complex res((re*op2.re + im*op2.im)/dvs,
+            (im*op2.re - re*op2.im)/dvs);
+    return res;
+}
+
+// The top-level function for operator on complex numbers
+// It is Complex's friend, thus we do not need getters
+Complex operator*(const Complex &a, const Complex &b)
+{
+    return Complex(a.re*b.re - a.im*b.im, a.re*b.im + a.im*b.re);
+}
 
 int main()
 {
@@ -119,6 +172,19 @@ int main()
     // It also follows, that refs to temp/anon objects must be const,
     // since temp objects should not be mutable
     // Thus const should also be used with refs where possible
+
+    printf("0.5 * (3 - 2i) = ");
+    // Thanks to the function implementation of * this works
+    (0.5 * Complex(3, -2)).Print();
+    printf("Same: ");
+    (operator*(0.5, Complex(3, -2))).Print();
+
+    Complex cc(1, 1);
+    printf("Let's mutate cc:\n");
+    (cc = 1).Print();
+    (cc = c1).Print();
+    (cc += t).Print();
+    (cc -= c2).Print();
 
     return 0;
 }

@@ -1,4 +1,4 @@
-/* basics/complex.cpp */
+/* adt/complex.cpp */
 #include <stdio.h>
 #include <math.h>
 

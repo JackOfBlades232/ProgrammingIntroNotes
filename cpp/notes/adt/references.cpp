@@ -1,4 +1,4 @@
-/* basics/references.cpp */
+/* adt/references.cpp */
 #include <stdio.h>
 
 /*

@@ -1,4 +1,4 @@
-/* basics/overloading.cpp */
+/* adt/overloading.cpp */
 #include <stdio.h>
 
 // In cpp a function with the same name can be defined multiple times in
