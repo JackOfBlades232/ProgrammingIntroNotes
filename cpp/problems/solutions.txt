@@ -1,0 +1,27 @@
+10_7:
+Line 1 (def constr): sun
+Line 2 (constr of int): venus 50
+Line 3 (implicit cast constructor for 800 and a destructor): venus 800
+                                                             moon
+Line 4 (call to f):
+    Call (copy of i2 as param): earth 850
+    Line 1 (cast 1000 to I and destroy): venus 1000
+                                         moon
+    Line 2 (+= with I objs): nothing
+    End (destructor on y): moon
+Line 5 (just printf on ints): 1856 850
+Line 6 (two destructors fire): moon
+                               moon
+
+Overall:
+sun
+venus 50
+venus 800
+moon
+earth 850
+venus 1000
+moon
+moon
+1856 850
+moon
+moon
