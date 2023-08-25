@@ -1,4 +1,4 @@
-/* 10_8.cpp */
+/* 10_9.cpp */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,6 +43,10 @@ public:
     friend Rational operator-(const Rational &r1, const Rational &r2);
     friend Rational operator*(const Rational &r1, const Rational &r2);
     friend Rational operator/(const Rational &r1, const Rational &r2);
+
+private:
+    void FixAndReduce();
+    static ll Gcd(ll n1, ll n2);
 };
 
 Rational::Rational(ll a_numerator, ll a_denominator)
@@ -51,10 +55,9 @@ Rational::Rational(ll a_numerator, ll a_denominator)
     if (denominator == 0) {
         fprintf(stderr, "Can't initialize rational with 0 denominator!\n");
         exit(1);
-    } else if (denominator < 0) {
-        numerator *= -1; 
-        denominator *= -1; 
     }
+
+    FixAndReduce();
 }
 
 ll Rational::Round() const
@@ -76,10 +79,7 @@ const Rational &Rational::operator+=(const Rational &op)
 {
     numerator = numerator*op.denominator + op.numerator*denominator;
     denominator = denominator*op.denominator;
-    if (denominator < 0) {
-        numerator *= -1;
-        denominator *= -1;
-    }
+    FixAndReduce();
     return *this;
 }
 
@@ -87,32 +87,29 @@ const Rational &Rational::operator-=(const Rational &op)
 {
     numerator = numerator*op.denominator - op.numerator*denominator;
     denominator = denominator*op.denominator;
-    if (denominator < 0) {
-        numerator *= -1;
-        denominator *= -1;
-    }
+    FixAndReduce();
     return *this;
 }
 
 const Rational &Rational::operator*=(const Rational &op)
 {
-    numerator = numerator*op.numerator;
-    denominator = denominator*op.denominator;
-    if (denominator < 0) {
-        numerator *= -1;
-        denominator *= -1;
-    }
+    ll gcd1 = Gcd(numerator, op.denominator);
+    ll gcd2 = Gcd(denominator, op.numerator);
+
+    numerator = (numerator/gcd1) * (op.numerator/gcd2);
+    denominator = (denominator/gcd2) * (op.denominator/gcd1);
+    FixAndReduce();
     return *this;
 }
 
 const Rational &Rational::operator/=(const Rational &op)
 {
-    numerator = numerator*op.denominator;
-    denominator = op.numerator*denominator;
-    if (denominator < 0) {
-        numerator *= -1;
-        denominator *= -1;
-    }
+    ll gcd1 = Gcd(numerator, op.numerator);
+    ll gcd2 = Gcd(denominator, op.denominator);
+
+    numerator = (numerator/gcd1) * (op.denominator/gcd2);
+    denominator = (denominator/gcd2) * (op.numerator/gcd1);
+    FixAndReduce();
     return *this;
 }
 
@@ -130,14 +127,47 @@ Rational operator-(const Rational &r1, const Rational &r2)
 
 Rational operator*(const Rational &r1, const Rational &r2)
 {
-    return Rational(r1.numerator * r2.numerator,
-                    r1.denominator * r2.denominator);
+    ll gcd1 = Rational::Gcd(r1.numerator, r2.denominator);
+    ll gcd2 = Rational::Gcd(r1.denominator, r2.numerator);
+
+    return Rational((r1.numerator/gcd1) * (r2.numerator/gcd2),
+                    (r1.denominator/gcd2) * (r2.denominator/gcd1));
 }
 
 Rational operator/(const Rational &r1, const Rational &r2)
 {
-    return Rational(r1.numerator * r2.denominator, 
-                    r2.numerator * r1.denominator);
+    ll gcd1 = Rational::Gcd(r1.numerator, r2.numerator);
+    ll gcd2 = Rational::Gcd(r1.denominator, r2.denominator);
+
+    return Rational((r1.numerator/gcd1) * (r2.denominator/gcd2), 
+                    (r1.denominator/gcd2) * (r2.numerator/gcd1));
+}
+
+void Rational::FixAndReduce()
+{
+    if (denominator < 0) {
+        numerator *= -1;
+        denominator *= -1;
+    }
+    if (numerator != 0) { 
+        ll gcd = Gcd(numerator, denominator);
+        numerator /= gcd;
+        denominator /= gcd;
+    }
+}
+
+ll Rational::Gcd(ll n1, ll n2)
+{
+    if (n1 < 0) n1 = -n1;
+    if (n2 < 0) n2 = -n2;
+    while (n1 > 0 && n2 > 0) {
+        if (n1 > n2)
+            n1 %= n2;
+        else
+            n2 %= n1;
+    }
+
+    return n1 > 0 ? n1 : n2;
 }
 
 int main()
@@ -146,6 +176,8 @@ int main()
     Rational r2(-32);
     Rational r3(15, 6);
     Rational r4(102.3421);
+
+    printf("Here is an implementation with euclid algo to combat explosions\n");
 
     printf("r1() = %s\n", r1.ToString().Str());
     printf("r2(-32) = %s\n", r2.ToString().Str());
@@ -242,12 +274,12 @@ int main()
     Rational acc(13, 46);
     printf("Let us test the limits of this implementation\n");
     printf("acc = %s\n", acc.ToString().Str());
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 46; i++) {
         Rational b(1+i, 4+i);
         printf("acc += %s = %s\n", b.ToString().Str(),
                (acc += b).ToString().Str());
     }
-    printf("Just 16 iterations to overflow!\n");
+    printf("Now it is 46 iterations to overflow!\n");
 
     return 0;
 }
