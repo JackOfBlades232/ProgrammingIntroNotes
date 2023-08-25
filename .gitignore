@@ -24,3 +24,5 @@
 *.tgz
 
 *.dSYM
+
+core.*
