@@ -77,6 +77,10 @@ int main(int argc, char **argv)
     try {
         printf("Lines in file: %d\n", line_count_in_file(argv[1]));
     } 
+    // This thing can catch FileException (const, &), and also every child
+    // of FileException, which is the last case of allowed casting in catch.
+    // This allows us to introduce a hierarchy of exceptions
+    // (this works only for refs cause pointer casting)
     catch(const FileException &ex) { 
         // Here, both possible casts are used: FE -> FE & -> const FE &
         fprintf(stderr, "File exception: %s (%s): %s\n", 
