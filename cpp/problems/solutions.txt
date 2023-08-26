@@ -45,3 +45,19 @@ third
 result = (14 ; 3) [or, result = (3 ; 14)]
 fourth
 second
+
+10_13:
+First functions are called in try blocks: t->h->g->f(60)
+Then f throws Ex(60), which is not caught in g cause it is not Ex60,
+thus the exception falls through to g
+There it is caught by the first catch block in h, which prints: horse
+And throws and Ex60 down the line
+In t it is caught, since Ex60 is a child of Ex, thus h prints: wolf 60
+Then it continues as usual and prints: monkey
+And then returns, and nothing else is printed
+
+Overall:
+horse
+wolf 60
+monkey
+

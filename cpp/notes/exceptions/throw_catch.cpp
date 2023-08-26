@@ -60,18 +60,15 @@ int main(int argc, char **argv)
     // it's descent down the call stack
     try {
         printf("Lines in file: %d\n", line_count_in_file(argv[1]));
-    } 
-    catch(const char *ex) {
+    } catch (const char *ex) {
         fprintf(stderr, "Exception (string): %s\n", ex);
         return 2;
-    } 
-    catch(int n) {
+    } catch (int n) {
         fprintf(stderr, "Exception (int): %d\n", n);
         return 3;
 
         throw; // this throws the last caught exception further down
-    } 
-    catch(...) { // catches any (other) type
+    } catch (...) { // catches any (other) type
         fprintf(stderr, "There's something wrong! I should've known\n");
         return 4;
 

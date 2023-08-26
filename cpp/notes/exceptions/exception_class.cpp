@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     // of FileException, which is the last case of allowed casting in catch.
     // This allows us to introduce a hierarchy of exceptions
     // (this works only for refs cause pointer casting)
-    catch(const FileException &ex) { 
+    catch (const FileException &ex) { 
         // Here, both possible casts are used: FE -> FE & -> const FE &
         fprintf(stderr, "File exception: %s (%s): %s\n", 
                 ex.GetName(), ex.GetComment(), strerror(ex.GetErrno()));
