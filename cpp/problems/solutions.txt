@@ -25,3 +25,23 @@ moon
 1856 850
 moon
 moon
+
+10_10:
+Line 1 (constructor of A is called, then of B): first
+                                                third
+Line 2 (nothing is printed, it's just pointer->ref):
+Let us presume that printf params are computed in order
+Line 3 (
+        1: f is called off p for A, this means first num is 0 + A.h() + B.g() = 14
+        2: f is called for b: 8 - 5 = 3
+        printf
+       ): result = (14 ; 3)
+Line 4 (just B destructor, and then A destructor at it's end): fourth
+                                                               second
+
+Overall:
+first
+third
+result = (14 ; 3) [or, result = (3 ; 14)]
+fourth
+second
