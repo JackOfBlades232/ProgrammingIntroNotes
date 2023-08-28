@@ -4,6 +4,8 @@
 // One could also use parametrized specialization, when the specialization
 // still has some params
 
+// Only classes allow parametrized spec, not functions
+
 template <class T, class S>
 class Cls { };
 
