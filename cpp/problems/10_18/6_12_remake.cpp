@@ -1,4 +1,4 @@
-/* example/tcp_serv.cpp */
+/* 10_18/6_12_remake.cpp */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -12,7 +12,6 @@
 #include <sys/select.h>
 #include <netinet/in.h>
 
-// Abstract class for handling i/o events on descriptors
 class FdHandler {
     int fd;
     bool owns_fd; // If true, fd is closed on destruction
@@ -29,7 +28,6 @@ public:
     virtual bool WantsToWrite() const { return false; }
 };
 
-// Wrapper around event selection cycle (i/e main cycle)
 class EventSelector {
     FdHandler **fd_array;
     int fd_array_len;
@@ -46,66 +44,67 @@ public:
     void Run();
 };
 
-// Now, we write the server and sessions, which will both be fd handlers
-// plucked into the main cycle
 enum {
-    max_line_len = 1023,
+    max_line_len = 511,
     qlen_for_listen = 16
 };
 
-class ChatServer;
+class Server;
 
-// Fully private, thus accessed only through server 
-// (unless used through and FdHandler *)
-class ChatSession : FdHandler {
-    friend class ChatServer;
+class Session : FdHandler {
+    friend class Server;
 
     char buffer[max_line_len+1];
-    int buf_used;
-    bool ignoring;
-    char *name;
-    ChatServer *master;
+    Server *master;
 
-    ChatSession(ChatServer *a_master, int fd);
-    ~ChatSession();
+    Session(Server *a_master, int a_fd)
+        : FdHandler(a_fd, true), master(a_master) {}
+    ~Session() {}
+
     void Send(const char *msg);
     virtual void Handle(bool r, bool w);
-    void ReadAndIgnore();
-    void ReadAndCheck();
-    void CheckLines();
-    void ProcessLine(const char *line);
 };
 
-class ChatServer : public FdHandler {
+class Server : public FdHandler {
     EventSelector *selector;
     struct item {
-        ChatSession *s;
+        Session *s;
         item *next;
     };
     item *first;
     // Move out creation and initialization to static method
-    ChatServer(EventSelector *sel, int fd);
+    Server(EventSelector *sel, int fd);
 
 public:
-    ~ChatServer();
-    static ChatServer *Create(EventSelector *sel, int port);
-    void RemoveSession(ChatSession *s);
-    void SendAll(const char *msg, ChatSession *except = 0);
+    ~Server();
+    static Server *Create(EventSelector *sel, int port);
+    void RemoveSession(Session *s);
 
 private:
     virtual void Handle(bool r, bool w);
 };
 
-// Now, we just use the program as such:
-static int port = 7654;
-
-int main()
+int main(int argc, char **argv)
 {
+    char *endptr;
+    long port;
+
+    if (argc != 2) {
+        fprintf(stderr, "Args: <port>\n");
+        return 1;
+    }
+
+    port = strtol(argv[1], &endptr, 10);
+    if (!*argv[1] || *endptr) {
+        fprintf(stderr, "Invalid port number\n");
+        return 1;
+    }
+
     EventSelector *selector = new EventSelector;
-    ChatServer *serv = ChatServer::Create(selector, port);
+    Server *serv = Server::Create(selector, port);
     if (!serv) {
         perror("server");
-        return 1;
+        return 2;
     }
     selector->Run();
     return 0;
@@ -189,7 +188,7 @@ void EventSelector::Run()
     } while (!quit_flag);
 }
 
-ChatServer *ChatServer::Create(EventSelector *sel, int port)
+Server *Server::Create(EventSelector *sel, int port)
 {
     int ls, opt, res;
     struct sockaddr_in addr;
@@ -207,16 +206,16 @@ ChatServer *ChatServer::Create(EventSelector *sel, int port)
     res = listen(ls, qlen_for_listen);
     if (res == -1)
         return 0;
-    return new ChatServer(sel, ls);
+    return new Server(sel, ls);
 }
 
-ChatServer::ChatServer(EventSelector *sel, int fd)
+Server::Server(EventSelector *sel, int fd)
     : FdHandler(fd, true), selector(sel), first(0) 
 {
     selector->Add(this);
 }
 
-ChatServer::~ChatServer()
+Server::~Server()
 {
     while (first) {
         item *tmp = first;
@@ -228,7 +227,7 @@ ChatServer::~ChatServer()
     selector->Remove(this);
 }
 
-void ChatServer::Handle(bool r, bool w)
+void Server::Handle(bool r, bool w)
 {
     if (!r) // Erroneous situation
         return;
@@ -242,12 +241,12 @@ void ChatServer::Handle(bool r, bool w)
 
     item *p = new item;
     p->next = first;
-    p->s = new ChatSession(this, sd);
+    p->s = new Session(this, sd);
     first = p;
     selector->Add(p->s);
 }
 
-void ChatServer::RemoveSession(ChatSession *s)
+void Server::RemoveSession(Session *s)
 {
     selector->Remove(s);
     item **p;
@@ -262,128 +261,24 @@ void ChatServer::RemoveSession(ChatSession *s)
     }
 }
 
-void ChatServer::SendAll(const char *msg, ChatSession *except)
-{
-    item *p;
-    for (p = first; p; p = p->next) {
-        if (p->s != except)
-            p->s->Send(msg);
-    }
-}
-
-void ChatSession::Send(const char *msg)
+void Session::Send(const char *msg)
 {
     write(GetFd(), msg, strlen(msg));
 }
 
-ChatSession::ChatSession(ChatServer *a_master, int fd)
-    : FdHandler(fd, true), buf_used(0), ignoring(false),
-    name(0), master(a_master)
-{
-    Send("Provide your name, please: ");
-}
-
-ChatSession::~ChatSession()
-{
-    if (name)
-        delete[] name;
-}
-
-static const char welcome_msg[] = "Welcome to the chat, you are known as ";
-static const char entered_msg[] = " has entered the chat";
-static const char left_msg[] = " has left the chat";
-
-void ChatSession::Handle(bool r, bool w)
+void Session::Handle(bool r, bool w)
 {
     if (!r) // Erroneous situation
         return;
 
-    // If line is too long, ignore it entirely, but don't disconnect
-    if (buf_used >= (int)sizeof(buffer)) {
-        buf_used = 0;
-        ignoring = true;
-    }
-
-    if (ignoring)
-        ReadAndIgnore();
-    else
-        ReadAndCheck();
-}
-
-void ChatSession::ReadAndIgnore()
-{
     int rc = read(GetFd(), buffer, sizeof(buffer));
     if (rc < 1) {
         master->RemoveSession(this);
         return;
     }
+
     for (int i = 0; i < rc; i++) {
-        if (buffer[i] == '\n') {
-            int rest = rc-i-1;
-            if (rest > 0)
-                memmove(buffer, buffer+i+1, rest);
-            buf_used = rest;
-            ignoring = false;
-        }
+        if (buffer[i] == '\n')
+            Send("Ok\n");
     }
-}
-
-void ChatSession::ReadAndCheck()
-{
-    int rc = read(GetFd(), buffer+buf_used, sizeof(buffer)-buf_used);
-    if (rc < 1) {
-        if (name) {
-            int len = strlen(name);
-            char *lmsg = new char[len + sizeof(left_msg) + 1];
-            sprintf(lmsg, "%s%s\n", name, left_msg);
-            master->SendAll(lmsg, this);
-            delete[] lmsg;
-        }
-        master->RemoveSession(this);
-        return;
-    }
-    buf_used += rc;
-    CheckLines();
-}
-
-void ChatSession::CheckLines()
-{
-    if (buf_used <= 0)
-        return;
-    for (int i = 0; i < buf_used; i++) {
-        if (buffer[i] == '\n') {
-            buffer[i] = 0;
-            if (i > 0 && buffer[i-1] == '\r')
-                buffer[i-1] = 0;
-            ProcessLine(buffer);
-            int rest = buf_used-i-1;
-            memmove(buffer, buffer+i+1, rest);
-            buf_used = rest;
-            CheckLines();
-            return;
-        }
-    }
-}
-
-void ChatSession::ProcessLine(const char *line)
-{
-    int len = strlen(line);
-    if (!name) {
-        name = new char[len+1];
-        strcpy(name, line);
-        char *wmsg = new char[len + sizeof(welcome_msg) + 1];
-        sprintf(wmsg, "%s%s\n", welcome_msg, name);
-        Send(wmsg);
-        delete[] wmsg;
-        char *emsg = new char[len + sizeof(entered_msg) + 1];
-        sprintf(emsg, "%s%s\n", name, entered_msg);
-        master->SendAll(emsg, this);
-        delete[] emsg;
-        return;
-    }
-    int nl = strlen(name);
-    char *msg = new char[nl + len + 5];
-    sprintf(msg, "<%s> %s\n", name, line);
-    master->SendAll(msg, this);
-    delete[] msg;
 }
