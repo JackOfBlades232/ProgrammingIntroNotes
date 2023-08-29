@@ -12,8 +12,6 @@
 #include <sys/select.h>
 #include <netinet/in.h>
 
-// @TODO: fix the multi-chunk file bug
-
 // A simple HTTP/1.1 server which only processes GET requests for a given
 // html file
 
