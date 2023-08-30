@@ -31,7 +31,7 @@ struct text_exerciser_t {
     double start_ms;
 };
 
-double get_ms()
+static double get_ms()
 {
     struct timespec ts = { 0 };
     clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -40,7 +40,7 @@ double get_ms()
     return (double)nsec * 1e-6;
 }
 
-void display_next_line(text_exerciser_t *ex)
+static void display_next_line(text_exerciser_t *ex)
 {
     size_t line_len = ex->max_line_len;
     // This can theoretically realloc ex->line, but it should not happed
@@ -85,7 +85,7 @@ void quit_callback(Fl_Widget *w, void *user)
     if (ex->line) free(ex->line);
 }
 
-bool open_and_check_ex_file(text_exerciser_t *ex, const char *filename)
+static bool open_and_check_ex_file(text_exerciser_t *ex, const char *filename)
 {
     bool result = true;
     size_t cur_line_len;
