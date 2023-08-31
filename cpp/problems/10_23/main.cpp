@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <time.h>
 
 #define ASSERT(_e, _fmt, ...) \
@@ -33,21 +34,23 @@ static inline int randint(int min, int max)
     return min + (int) ((float) (max-min+1) * rand() / (RAND_MAX+1.0));
 }
 
+static void quit_app(Fl_Widget *w);
 static void button_callback(Fl_Widget *w, void *user);
 
 class FifteenButton;
 
 class FifteenBoard {
-    FifteenButton *btns[4][4];
     int null_x, null_y;
+    FifteenButton *btns[4][4];
+    FifteenButton *ordered_btn_refs[4*4]; // for ease of sorting
 
 public:
-    FifteenBoard(int a_null_x, int a_null_y);
+    FifteenBoard();
     void Reset();
     bool IsBeaten();
     int GetNullX() { return null_x; }
     int GetNullY() { return null_y; }
-    void SetNullCoords(int x, int y) { null_x = x; null_y = y; }
+    void MoveBtnToFreeSpot(FifteenButton *btn);
 };
 
 class FifteenButton : public Fl_Button {
@@ -73,27 +76,34 @@ static void button_callback(Fl_Widget *w, void *user)
     FifteenButton *btn = static_cast<FifteenButton *>(w);
     FifteenBoard *brd = (FifteenBoard *)user;
 
-    int prev_x = btn->GetXIdx();
-    int prev_y = btn->GetYIdx();
-    int null_x = brd->GetNullX();
-    int null_y = brd->GetNullY();
-    ASSERT(prev_x != null_x || prev_y != null_y, "The null field got clicked");
+    brd->MoveBtnToFreeSpot(btn);
 
-    if (ABS(prev_x - null_x) + ABS(prev_y - null_y) > 1)
-        return;
-
-    btn->Move(null_x, null_y);
-    brd->SetNullCoords(prev_x, prev_y);
+    if (brd->IsBeaten()) {
+        // TODO: impl message and restart
+        quit_app(w);        
+    }
 }
 
-FifteenBoard::FifteenBoard(int a_null_x, int a_null_y)
-    : null_x(a_null_x), null_y(a_null_y)
+static void quit_app(Fl_Widget *w)
+{
+    Fl_Widget *p;
+    do {
+        p = w->parent();
+        if (p)
+            w = p;
+    } while (p);
+    w->hide();
+}
+
+FifteenBoard::FifteenBoard() : null_x(3), null_y(3)
 {
     for (int y = 0; y < 4; y++)
         for (int x = 0; x < 4; x++) {
             if (x == null_x && y == null_y)
-                break;
-            btns[y][x] = new FifteenButton(this, 4*y + x + 1, x, y);
+                btns[y][x] = 0;
+            else
+                btns[y][x] = new FifteenButton(this, 4*y + x + 1, x, y);
+            ordered_btn_refs[4*y + x] = btns[y][x];
         }
 
     Reset();
@@ -117,32 +127,55 @@ static bool permutation_is_even(int *arr, int size)
 
 void FifteenBoard::Reset()
 {
-    // TODO: reset buttons to 1..15
-
-    int arr[15];
+    int perm[15];
     for (int i = 0; i < 15; i++)
-        arr[i] = i+1;
+        perm[i] = i+1;
 
-    while (permutation_is_id(arr, 15) || permutation_is_even(arr, 15)) {
+    while (permutation_is_id(perm, 15) || permutation_is_even(perm, 15)) {
         for (int i = 0; i < 15-1; i++) {
             int xchg_idx = randint(i, 15-1);
-            int tmp = arr[i];
-            arr[i] = arr[xchg_idx];
-            arr[xchg_idx] = tmp;
+            int tmp = perm[i];
+            perm[i] = perm[xchg_idx];
+            perm[xchg_idx] = tmp;
         }
     }
 
-    // TODO: reorder buttons by generated permutation
+    for (int y = 0; y < 4; y++)
+        for (int x = 0; x < 4; x++) {
+            int i = 4*y + x; 
+            if (i < 15) {
+                btns[y][x] = ordered_btn_refs[perm[i]-1];
+                btns[y][x]->Move(x, y);
+            }
+            else 
+                btns[y][x] = 0;
+        }
 }
 
 bool FifteenBoard::IsBeaten()
 {
     for (int i = 0; i < 15; i++) {
-        if (btns[i/4][i%4]->GetNumber() != i+1)
+        FifteenButton *btn = btns[i/4][i%4];
+        if (!btn || btn->GetNumber() != i+1)
             return false;
     }
 
     return true;
+}
+
+void FifteenBoard::MoveBtnToFreeSpot(FifteenButton *btn)
+{
+    int btn_x = btn->GetXIdx();
+    int btn_y = btn->GetYIdx();
+    if (ABS(btn_x - null_x) + ABS(btn_y - null_y) > 1)
+        return;
+
+    btns[null_y][null_x] = btn;
+    btn->Move(null_x, null_y);
+
+    null_x = btn_x;
+    null_y = btn_y;
+    btns[null_y][null_x] = 0;
 }
 
 FifteenButton::FifteenButton(FifteenBoard *brd,
@@ -178,7 +211,7 @@ int main(int argc, char **argv)
     int win_sz = btn_sz*4 + spacing*3 + padding*2;
     Fl_Window *win = new Fl_Window(win_sz, win_sz, "10_23 (fifteen)");
 
-    FifteenBoard board(3, 3);
+    FifteenBoard board;
 
     win->resizable(win);
     win->size_range(win_sz/2, win_sz/2, 2*win_sz, 2*win_sz, 0, 0, true);
