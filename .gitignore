@@ -26,3 +26,5 @@
 *.dSYM
 
 core.*
+
+*.sav
