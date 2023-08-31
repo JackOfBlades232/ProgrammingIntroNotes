@@ -3,11 +3,16 @@
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Box.H>
+#include <FL/fl_ask.H>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+
+/* TODO
+ * Implement one quit function an wire it to game end, ESC and CTRL-C
+ */
 
 #define ASSERT(_e, _fmt, ...) \
     if(!(_e)) { \
@@ -19,41 +24,68 @@
 
 #define ABS(_a) ((_a) < 0 ? -(_a) : (_a))
 
-#define FONT_SIZE_TO_BTN 0.35
-
 enum {
-    btn_sz = 100,
-    spacing = 10,
-    padding = 50
-};
+    btn_sz = 150,
+    spacing = 15,
+    padding = 75,
+    font_size = 50,
 
-const int font_size = (int)((float)btn_sz * FONT_SIZE_TO_BTN);
+    space_before_btns = 45,
+    btn_w = 150,
+    btn_h = 90,
+    btn_spacing = 150,
+
+    board_sz = 4,
+    board_area = board_sz*board_sz,
+    filled_board_area = board_area-1
+};
 
 static inline int randint(int min, int max)
 {
-    return min + (int) ((float) (max-min+1) * rand() / (RAND_MAX+1.0));
+    return min + (int)((float)(max-min+1) * rand() / (RAND_MAX+1.0));
 }
 
-static void quit_app(Fl_Widget *w);
-static void button_callback(Fl_Widget *w, void *user);
+static inline int idx_to_coord(int idx)
+{ 
+    return padding + idx*btn_sz + idx*spacing; 
+}
+
+static inline int xy_to_lin_idx(int x, int y)
+{ 
+    return board_sz*y + x; 
+}
+
+static void btn_callback(Fl_Widget *w, void *user);
+static void undo_callback(Fl_Widget *w, void *user);
+static void reset_callback(Fl_Widget *w, void *user);
 
 class FifteenButton;
 
 class FifteenBoard {
     int null_x, null_y;
-    FifteenButton *btns[4][4];
-    FifteenButton *ordered_btn_refs[4*4]; // for ease of sorting
+    FifteenButton *btns[board_sz][board_sz];
+    FifteenButton *ordered_btn_refs[board_area]; // for ease of sorting
+
+
+    struct turn_t {
+        int dest_x, dest_y;
+        turn_t *prev;
+    };
+    int init_board_state[board_sz][board_sz] = { 0 };
+    turn_t *turn_stack = 0;
+
 
 public:
     FifteenBoard();
     void Reset();
     bool IsBeaten();
-    int GetNullX() { return null_x; }
-    int GetNullY() { return null_y; }
-    void MoveBtnToFreeSpot(FifteenButton *btn);
+    void TryMoveBtnToFreeSpot(FifteenButton *btn);
+    void TryUndoTurn();
 };
 
 class FifteenButton : public Fl_Button {
+    friend class FifteenBoard;
+
     int number;
     int x_idx, y_idx;
 
@@ -61,26 +93,29 @@ public:
     FifteenButton(FifteenBoard *brd,
             int a_number, int a_xidx, int a_yidx);
     void Move(int new_xidx, int new_yidx);
-    int GetNumber() { return number; }
-    int GetXIdx() { return x_idx; }
-    int GetYIdx() { return y_idx; }
 
 private:
     void UpdateLabel();
-    static int IdxToCoord(int idx)
-        { return padding + idx*btn_sz + idx*spacing; }
 };
 
-static void button_callback(Fl_Widget *w, void *user)
+static void quit_app(Fl_Widget *w);
+static void btn_callback(Fl_Widget *w, void *user)
 {
     FifteenButton *btn = static_cast<FifteenButton *>(w);
     FifteenBoard *brd = (FifteenBoard *)user;
 
-    brd->MoveBtnToFreeSpot(btn);
+    brd->TryMoveBtnToFreeSpot(btn);
 
     if (brd->IsBeaten()) {
-        // TODO: impl message and restart
-        quit_app(w);        
+        int ask_res = fl_choice("You've won! Restart?", fl_no, fl_yes, 0);
+        switch (ask_res) {
+            case 0: // No
+                quit_app(w);        
+                break;
+            case 1: // Yes
+            default:
+                brd->Reset();
+        }
     }
 }
 
@@ -95,97 +130,160 @@ static void quit_app(Fl_Widget *w)
     w->hide();
 }
 
-FifteenBoard::FifteenBoard() : null_x(3), null_y(3)
+static void undo_callback(Fl_Widget *w, void *user)
 {
-    for (int y = 0; y < 4; y++)
-        for (int x = 0; x < 4; x++) {
-            if (x == null_x && y == null_y)
-                btns[y][x] = 0;
-            else
-                btns[y][x] = new FifteenButton(this, 4*y + x + 1, x, y);
-            ordered_btn_refs[4*y + x] = btns[y][x];
-        }
-
-    Reset();
+    ((FifteenBoard *)user)->TryUndoTurn();
 }
 
-static bool permutation_is_id(int *arr, int size)
+static void reset_callback(Fl_Widget *w, void *user)
+{
+    ((FifteenBoard *)user)->Reset();
+}
+
+FifteenBoard::FifteenBoard() : null_x(board_sz-1), null_y(board_sz-1)
+{
+    for (int y = 0; y < board_sz; y++)
+        for (int x = 0; x < board_sz; x++) {
+            if (x == null_x && y == null_y) {
+                btns[y][x] = 0;
+                continue;
+            }
+
+            int lin_idx = xy_to_lin_idx(x, y);
+            btns[y][x] = new FifteenButton(this, lin_idx+1, x, y);
+            ordered_btn_refs[lin_idx] = btns[y][x];
+        }
+}
+
+static bool permutation_is_id(int *perm, int size)
 {
     for (int i = 0; i < size; i++) {
-        if (arr[i] != i+1)
+        if (perm[i] != i)
             return false;
     }
 
     return true;
 }
 
-static bool permutation_is_even(int *arr, int size)
+static bool permutation_is_odd(int *perm, int size)
 {
-    // TODO: implement
-    return false;
+    // Since the array is 15 el long, it's ok to use the O(n^2) inv counting
+    int inv_cnt = 0;
+    for (int i = 0; i < size-1; i++)
+        for (int j = i+1; j < size; j++) {
+            if (perm[i] > perm[j])
+                inv_cnt++;
+        }
+            
+    return inv_cnt % 2 == 1;
+}
+
+static void shuffle_permutation(int *perm, int size)
+{
+    for (int i = 0; i < size-1; i++) {
+        int xchg_idx = randint(i, size-1);
+        int tmp = perm[i];
+        perm[i] = perm[xchg_idx];
+        perm[xchg_idx] = tmp;
+    }
+}
+
+static void generate_even_permutation(int *perm, int size)
+{
+    for (int i = 0; i < filled_board_area; i++)
+        perm[i] = i;
+
+    while (
+            permutation_is_id(perm, filled_board_area) || 
+            permutation_is_odd(perm, filled_board_area)
+          )
+    {
+        shuffle_permutation(perm, filled_board_area);
+    }
 }
 
 void FifteenBoard::Reset()
 {
-    int perm[15];
-    for (int i = 0; i < 15; i++)
-        perm[i] = i+1;
+    int perm[filled_board_area];
+    generate_even_permutation(perm, filled_board_area);
 
-    while (permutation_is_id(perm, 15) || permutation_is_even(perm, 15)) {
-        for (int i = 0; i < 15-1; i++) {
-            int xchg_idx = randint(i, 15-1);
-            int tmp = perm[i];
-            perm[i] = perm[xchg_idx];
-            perm[xchg_idx] = tmp;
-        }
-    }
-
-    for (int y = 0; y < 4; y++)
-        for (int x = 0; x < 4; x++) {
-            int i = 4*y + x; 
-            if (i < 15) {
-                btns[y][x] = ordered_btn_refs[perm[i]-1];
+    for (int y = 0; y < board_sz; y++)
+        for (int x = 0; x < board_sz; x++) {
+            int i = xy_to_lin_idx(x, y); 
+            if (i < filled_board_area) {
+                btns[y][x] = ordered_btn_refs[perm[i]];
                 btns[y][x]->Move(x, y);
             }
             else 
                 btns[y][x] = 0;
+
+
+            init_board_state[y][x] = btns[y][x] ? btns[y][x]->number : 0;
         }
 }
 
 bool FifteenBoard::IsBeaten()
 {
-    for (int i = 0; i < 15; i++) {
-        FifteenButton *btn = btns[i/4][i%4];
-        if (!btn || btn->GetNumber() != i+1)
+    for (int i = 0; i < filled_board_area; i++) {
+        FifteenButton *btn = btns[i/board_sz][i%board_sz];
+        if (!btn || btn->number != i+1)
             return false;
     }
 
     return true;
 }
 
-void FifteenBoard::MoveBtnToFreeSpot(FifteenButton *btn)
+void FifteenBoard::TryMoveBtnToFreeSpot(FifteenButton *btn)
 {
-    int btn_x = btn->GetXIdx();
-    int btn_y = btn->GetYIdx();
-    if (ABS(btn_x - null_x) + ABS(btn_y - null_y) > 1)
+    if (ABS(btn->x_idx - null_x) + ABS(btn->y_idx - null_y) > 1)
         return;
+
+
+    turn_t *turn = new turn_t;
+    turn->dest_x = null_x;
+    turn->dest_y = null_y;
+    turn->prev = turn_stack;
+    turn_stack = turn;
+
+
+    int btn_prev_x = btn->x_idx;
+    int btn_prev_y = btn->y_idx;
 
     btns[null_y][null_x] = btn;
     btn->Move(null_x, null_y);
 
-    null_x = btn_x;
-    null_y = btn_y;
+    null_x = btn_prev_x;
+    null_y = btn_prev_y;
     btns[null_y][null_x] = 0;
+}
+
+void FifteenBoard::TryUndoTurn()
+{
+    if (!turn_stack)
+        return;
+
+    FifteenButton *btn = btns[turn_stack->dest_y][turn_stack->dest_x];
+    btns[null_y][null_x] = btn;
+    btn->Move(null_x, null_y);
+
+    null_x = turn_stack->dest_x;
+    null_y = turn_stack->dest_y;
+    btns[null_y][null_x] = 0;
+
+
+    turn_t *tmp = turn_stack;
+    turn_stack = turn_stack->prev;
+    delete tmp;
 }
 
 FifteenButton::FifteenButton(FifteenBoard *brd,
         int a_number, int a_xidx, int a_yidx)
-    : Fl_Button(IdxToCoord(a_xidx), IdxToCoord(a_yidx), btn_sz, btn_sz),
+    : Fl_Button(idx_to_coord(a_xidx), idx_to_coord(a_yidx), btn_sz, btn_sz),
     number(a_number), x_idx(a_xidx), y_idx(a_yidx)
 {
     labelsize(font_size);
     UpdateLabel();
-    callback(button_callback, (void *)brd);
+    callback(btn_callback, (void *)brd);
 }
 
 void FifteenButton::Move(int new_xidx, int new_yidx)
@@ -193,14 +291,15 @@ void FifteenButton::Move(int new_xidx, int new_yidx)
     x_idx = new_xidx;
     y_idx = new_yidx;
     hide();
-    position(IdxToCoord(x_idx), IdxToCoord(y_idx));
+    position(idx_to_coord(x_idx), idx_to_coord(y_idx));
     show();
 }
 
 void FifteenButton::UpdateLabel()
 {
     char buf[32];
-    snprintf(buf, sizeof(buf), "%d", 4*y_idx + x_idx + 1);
+    int lin_idx = xy_to_lin_idx(x_idx, y_idx);
+    snprintf(buf, sizeof(buf), "%d", lin_idx + 1);
     copy_label(buf);
 }
 
@@ -208,13 +307,32 @@ int main(int argc, char **argv)
 {
     srand(time(0));
 
-    int win_sz = btn_sz*4 + spacing*3 + padding*2;
-    Fl_Window *win = new Fl_Window(win_sz, win_sz, "10_23 (fifteen)");
+    int win_w = btn_sz*board_sz + spacing*(board_sz-1) + padding*2;
+    int win_h = win_w + space_before_btns + btn_h;
+    Fl_Window *win = new Fl_Window(win_w, win_h, "10_23 (fifteen)");
 
+    // All the required widgets are set up inside board
     FifteenBoard board;
+    board.Reset();
 
-    win->resizable(win);
-    win->size_range(win_sz/2, win_sz/2, 2*win_sz, 2*win_sz, 0, 0, true);
+
+    int btn_x = win_w - 2*padding - 2*btn_w - btn_spacing;
+    int btn_y = win_h - padding - btn_h;
+
+    Fl_Button *undo_btn = 
+        new Fl_Button(btn_x, btn_y, btn_w, btn_h, "@undo");
+
+    btn_x += btn_w + btn_spacing;
+    Fl_Button *reset_btn = 
+        new Fl_Button(btn_x, btn_y, btn_w, btn_h, "@reload");
+    
+    undo_btn->labelsize(font_size);
+    reset_btn->labelsize(font_size);
+    undo_btn->callback(undo_callback, (void *) &board);
+    reset_btn->callback(reset_callback, (void *) &board);
+
+
+    win->resizable(0);
     win->end();
     win->show(argc, argv);
     return Fl::run();
