@@ -25,7 +25,7 @@
 (defun main (c)
     (if (null c)
         t
-        (let ()
+        (progn
             (princ c outf)
             (let ((nc (read-char inf nil nil))) (main nc))
         )
