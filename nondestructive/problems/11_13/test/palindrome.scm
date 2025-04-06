@@ -9,7 +9,7 @@
             ((eqv? (string-ref str 0) (string-ref str (- len 1)))
                 (if (<= len 3)
                     #t
-                    (palindrome?-impl (substring str 1 (- len 1)) (- len 1))
+                    (palindrome?-impl (substring str 1 (- len 1)) (- len 2))
                 )
             )
             (#t #f)
