@@ -42,7 +42,7 @@ ten_broken2(X) :- ten_broken2(Y), !, X is Y + 1, !, X =< 10, !.
 
 % The idea is to cut only once all correct solutions have been found
 ten(1).
-ten(X) :- ten(Y), ((Y >= 10, !, fail) ; X is Y + 1).
+ten(X) :- ten(Y), ((Y >= 10, !, fail); X is Y + 1).
 
 % Can also be done by making a between pred
 arebetween(A, B, _) :- A > B, !, fail.
@@ -52,4 +52,4 @@ arebetween(A, B, X) :- A1 is A + 1, arebetween(A1, B, X).
 ten2(N) :- arebetween(1, 10, N).
 
 % Basically we recurse and backtrack to deeper recursion each time, but
-% once we meet the end condition -- we cut and fail.
+% once we meet thxe end condition -- we cut and fail.
