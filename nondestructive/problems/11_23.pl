@@ -31,7 +31,7 @@ main :-
 
     ([Arg] = Argv, atom_number(Arg, N), !,
         findall(Sol, solve(N, N, 1, Sol), Sols), print_solutions(Sols);
-        write('Invalid upsage: prog [N]\n')
+        write('Invalid usage: prog [N]\n')
     ),
     
     halt.
