@@ -18,18 +18,27 @@ uniq(L, R) :- uniq(L, R, []).
 uniq([], R, R) :- !.
 uniq([H|T], R, A) :- none(H, A), !, uniq(T, R, [H|A]).
 uniq([_|T], R, A) :- uniq(T, R, A).
+empty([]).
+first([A|_], A) :- !.
+last([A], A) :- !.
+last([_|T], A) :- last(T, A).
+
+choice(L, E) :- random_permutation(L, T), !, has(E, T).
+shuffle_sort(L, R) :- random_permutation(L, T), !, sort(T, R).
 
 is_knight_dxdy(DX, DY) :-
     absval(DX, ADX), absval(DY, ADY),
     (ADX =:= 2, ADY =:= 1; ADX =:= 1, ADY =:= 2).
+is_knight_turn(From, To) :-
+    pos(FX, FY) = From, pos(TX, TY) = To,
+    DX is TX - FX, DY is TY - FY, is_knight_dxdy(DX, DY).
 
 base_available_turns(X, Y, N, M, Dest) :-
-    inrange(TX, N), inrange(TY, M), (TX =\= 1; TY =\= 1),
-    DX is TX - X, DY is TY - Y, is_knight_dxdy(DX, DY),
-    Dest = pos(TX, TY).
+    inrange(TX, N), inrange(TY, M),
+    is_knight_turn(pos(X, Y), pos(TX, TY)), Dest = pos(TX, TY).
 
 to_visit(N, M, Dest) :-
-    inrange(X, N), inrange(Y, M), (X =\= 1; Y =\= 1),
+    inrange(X, N), inrange(Y, M),
     findall(O, base_available_turns(X, Y, N, M, O), TurnsList),
     uniq(TurnsList, TurnsListUnique), length(TurnsListUnique, Turns),
     Dest = square(Turns, pos(X, Y)).
@@ -38,27 +47,17 @@ delsq(_, [], Out) :- !, Out = [].
 delsq(E, [E|Tail], Out) :- !, delsq(E, Tail, Out).
 delsq(E, [H|Tail], Out) :-
     square(_, pos(EX, EY)) = E, square(HTurns, pos(HX, HY)) = H,
-    DX is EX - HX, DY is EY - HY, is_knight_dxdy(DX, DY),
+    DX is EX - HX, DY is EY - HY, is_knight_dxdy(DX, DY), !,
     delsq(E, Tail, PrunedTail), NTurns is HTurns - 1,
     Out = [square(NTurns, pos(HX, HY))|PrunedTail].
 delsq(E, [H|Tail], Out) :-
     delsq(E, Tail, PrunedTail), Out = [H|PrunedTail].
 
-turn_is_ok(pos(X, Y), Dest, ToVisit, Remaining) :-
+turn_is_ok(Pos, Dest, ToVisit, Remaining) :-
     has(Dest, ToVisit),
-    square(_, pos(DestX, DestY)) = Dest,
-    DX is DestX - X, DY is DestY - Y, is_knight_dxdy(DX, DY),
+    square(_, DPos) = Dest, is_knight_turn(Pos, DPos),
     delsq(Dest, ToVisit, RemainingUnsorted),
-    sort(RemainingUnsorted, Remaining).
-
-solution_is_valid([]) :- !.
-solution_is_valid([_]) :- !.
-solution_is_valid([A, B|T]) :- 
-    pos(AX, AY) = A, pos(BX, BY) = B, DX is AX - BX, DY is AY - BY,
-    is_knight_dxdy(DX, DY), solution_is_valid([B|T]).
-solution_is_valid(Sol, N, M) :-
-    uniq(Sol, US), length(Sol, LS), length(US, LU), LB is N * M,
-    LS =:= LU, LS =:= LB, solution_is_valid(Sol).
+    shuffle_sort(RemainingUnsorted, Remaining).
 
 open_solve(_, [], Sol) :- !, Sol = [].
 open_solve(Pos, ToVisit, Sol) :-
@@ -67,16 +66,42 @@ open_solve(Pos, ToVisit, Sol) :-
     open_solve(DPos, Remaining, RemainingSol), !,
     Sol = [DPos|RemainingSol].
 
+closed_solve(Pos, [], Init, Sol) :- !, is_knight_turn(Pos, Init), Sol = [].
+closed_solve(Pos, ToVisit, Init, Sol) :-
+    turn_is_ok(Pos, Dest, ToVisit, Remaining),
+    square(_, DPos) = Dest,
+    closed_solve(DPos, Remaining, Init, RemainingSol), !,
+    Sol = [DPos|RemainingSol].
+
+solution_is_valid([_]) :- !.
+solution_is_valid([A, B|T]) :- is_knight_turn(A, B), solution_is_valid([B|T]).
+solution_is_valid(Sol, N, M) :-
+    uniq(Sol, US), length(Sol, LS), length(US, LU), LB is N * M,
+    LS =:= LU, LS =:= LB, solution_is_valid(Sol).
+
+solution_is_valid_and_closed(Sol, N, M) :-
+    solution_is_valid(Sol, N, M),
+    first(Sol, H), last(Sol, T), is_knight_turn(T, H).
+
 print_sol([]) :- nl.
 print_sol([pos(X, Y)|Tail]) :-
     write(X), write(','), write(Y), write(' '), print_sol(Tail).
 
 find_open_path(N, M) :-
-    findall(Dest, to_visit(N, M, Dest), ToVisitUnsorted),
-    sort(ToVisitUnsorted, ToVisit),
-    open_solve(pos(1, 1), ToVisit, Sol),
-    CSol = [pos(1, 1)|Sol], solution_is_valid(CSol, N, M),
-    print_sol([pos(1, 1)|Sol]).
+    findall(Dest, to_visit(N, M, Dest), ToVisitInit),
+    choice(ToVisitInit, Init), delsq(Init, ToVisitInit, ToVisitUnsorted),
+    shuffle_sort(ToVisitUnsorted, ToVisit), square(_, InitPos) = Init,
+    open_solve(InitPos, ToVisit, Sol), !,
+    CSol = [InitPos|Sol], solution_is_valid(CSol, N, M),
+    print_sol(CSol).
+
+find_closed_path(N, M) :-
+    findall(Dest, to_visit(N, M, Dest), ToVisitInit),
+    choice(ToVisitInit, Init), delsq(Init, ToVisitInit, ToVisitUnsorted),
+    shuffle_sort(ToVisitUnsorted, ToVisit), square(_, InitPos) = Init,
+    closed_solve(InitPos, ToVisit, InitPos, Sol), !,
+    CSol = [InitPos|Sol], solution_is_valid_and_closed(CSol, N, M),
+    print_sol(CSol).
 
 main :-
     on_signal(int, _, default),
@@ -91,7 +116,7 @@ main :-
                     N =:= 3, (M =:= 4; M =:= 8)), !,
                     
                     write('Open path:\n'), find_open_path(N, M);
-                    write('Closed path: TODO\n'), find_open_path(N, M)
+                    write('Closed path:\n'), find_closed_path(N, M)
                 )    
             );
             write('Invalid usage: N <= M required\n')
