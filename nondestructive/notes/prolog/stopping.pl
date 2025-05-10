@@ -50,7 +50,7 @@ del_all_broken(Elem, [X|Tail], [X|NewTail]) :-
 % This could be hacked around with var/nonvar predicates which special
 % case the unbound case, but that is quite ugly.
 
-% Sincle logical semantics are now dead and we are in procedural prolog land,
+% Since logical semantics are now dead and we are in procedural prolog land,
 % we can solve this problem better, with explicitly cutting off waypoints.
 % ! cuts all waypoints up to this point.
 
