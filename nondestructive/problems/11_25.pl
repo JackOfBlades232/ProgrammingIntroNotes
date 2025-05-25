@@ -28,6 +28,60 @@ code_list_to_board(
     board(row(E1, E2, E3, E4), row(E5, E6, E7, E8), row(E9, E10, E11, E12),
         row(E13, E14, E15, E16))).
 
+board_row(board(R, _, _, _), 1, Row) :- Row = R.
+board_row(board(_, R, _, _), 2, Row) :- Row = R.
+board_row(board(_, _, R, _), 3, Row) :- Row = R.
+board_row(board(_, _, _, R), 4, Row) :- Row = R.
+
+row_at(row(E, _, _, _), 1, Elem) :- Elem = E.
+row_at(row(_, E, _, _), 2, Elem) :- Elem = E.
+row_at(row(_, _, E, _), 3, Elem) :- Elem = E.
+row_at(row(_, _, _, E), 4, Elem) :- Elem = E.
+
+board_row_set(board(_, A, B, C), board(Row, A, B, C), 1, Row).
+board_row_set(board(A, _, B, C), board(A, Row, B, C), 2, Row).
+board_row_set(board(A, B, _, C), board(A, B, Row, C), 3, Row).
+board_row_set(board(A, B, C, _), board(A, B, C, Row), 4, Row).
+row_set(row(_, A, B, C), row(Elem, A, B, C), 1, Elem).
+row_set(row(A, _, B, C), row(A, Elem, B, C), 2, Elem).
+row_set(row(A, B, _, C), row(A, B, Elem, C), 3, Elem).
+row_set(row(A, B, C, _), row(A, B, C, Elem), 4, Elem).
+
+board_at(B, RI, EI, Elem) :- board_row(B, RI, Row), row_at(Row, EI, Elem).
+board_set(B, OB, RI, EI, Elem) :- 
+    board_row(B, RI, R), row_set(R, NR, EI, Elem), board_row_set(B, OB, RI, NR).
+
+rowcol_to_linear(RI, EI, LI) :- LI is (RI - 1) * 4 + EI.
+linear_to_rowcol(LI, RI, EI) :-
+    RI is (LI - 1) div 4 + 1, EI is (LI - 1) mod 4 + 1.
+
+board_at(B, LI, Elem) :-
+    linear_to_rowcol(LI, RI, EI), board_at(B, RI, EI, Elem).
+board_search(B, LI, Elem) :-
+    board_at(B, RI, EI, Elem), rowcol_to_linear(RI, EI, LI).
+
+% @TODO: set by linear index?
+
+apply_turn_to_board(Board, OutBoard, ERI, EEI, RI, EI) :-
+    board_at(Board, RI, EI, Subs),
+    board_set(Board, OTB, ERI, EEI, Subs),
+    board_set(OTB, OutBoard, RI, EI, 16).
+
+turns_from(RI, EI, RMin, _, _, _, ORI, OEI) :-
+    RI > RMin, ORI is RI - 1, OEI is EI.
+turns_from(RI, EI, _, EMin, _, _, ORI, OEI) :-
+    EI > EMin, ORI is RI, OEI is EI - 1.
+turns_from(RI, EI, _, _, RMax, _, ORI, OEI) :-
+    RI < RMax, ORI is RI + 1, OEI is EI.
+turns_from(RI, EI, _, _, _, EMax, ORI, OEI) :-
+    EI < EMax, ORI is RI, OEI is EI + 1.
+
+% @TODO: extend to partial boards
+turns_from(Board, OutBoard, ORI, OEI) :-
+    board_at(Board, RI, EI, 16),
+    turns_from(RI, EI, 1, 1, 4, 4, ORI, OEI),
+    apply_turn_to_board(Board, OutBoard, RI, EI, ORI, OEI).
+
 atom_to_code_fifteen('@', 16) :- !.
 atom_to_code_fifteen(Atom, Code) :- atom_number(Atom, Code).
 
@@ -64,6 +118,13 @@ final_board_fifteen(InitBoard, FinalBoard) :-
             row(9, 10, 11, 12), row(13, 15, 14, 16))
     ).
 
+% @TEST, to be removed
+turns_from_test(B, O) :- turns_from(B, OB, ORI, OEI), O = tfout(OB, ORI, OEI).
+print_tfouts([]).
+print_tfouts([tfout(OB, ORI, OEI)|T]) :- 
+    write(ORI), write(' '), write(OEI), nl, write(OB), nl,
+    print_tfouts(T).
+
 main :-
     on_signal(int, _, default),
     prompt(_, ''),
@@ -75,7 +136,22 @@ main :-
             write(Board), nl,
             final_board_fifteen(Board, Final),
             write('Dest:'), nl,
-            write(Final), nl
+            write(Final), nl,
+
+            board_row(Board, 2, R), write(R), nl,
+            row_at(R, 4, E), write(E), nl,
+
+            board_at(Board, 3, 2, EE), write(EE), nl,
+            board_at(Board, RI, EI, 12), write(RI), write(' '), write(EI), nl,
+
+            board_at(Board, 11, EEE), write(EEE), nl,
+            board_search(Board, LI, 7), write(LI), nl,
+
+            findall(
+                tfout(OB, ORI, OEI),
+                turns_from_test(Board, tfout(OB, ORI, OEI)),
+                Turns),
+            print_tfouts(Turns)
         ;
             
         % @TODO: thirteen
