@@ -82,6 +82,30 @@ turns_from(Board, OutBoard, ORI, OEI) :-
     turns_from(RI, EI, 1, 1, 4, 4, ORI, OEI),
     apply_turn_to_board(Board, OutBoard, RI, EI, ORI, OEI).
 
+diff_board_score_at(From, To, RI, EI, S) :-
+    board_at(From, RI, EI, F), board_at(To, RI, EI, T),
+    (F =\= T, T =\= 16, S = 1; S = 0).
+
+diff_board_score(From, To, 4, 4, S) :- !,
+    diff_board_score_at(From, To, 4, 4, S).
+diff_board_score(From, To, RI, EI, S) :-
+    diff_board_score_at(From, To, RI, EI, Addition),
+    (EI =:= 4, !, NRI is RI + 1, NEI is 1; NRI is RI, NEI is EI + 1),
+    diff_board_score(From, To, NRI, NEI, Rest), S is Rest + Addition.
+diff_board_score(From, To, S) :- diff_board_score(From, To, 1, 1, S).
+
+choose_next_node([], Min, _) :- Min = 2^64 - 1.
+choose_next_node([HT|OT], Min, MinRec) :-
+    HT = record(_, G, H), Score is G + H,
+    choose_next_node(OT, OMin, OMinRec),
+    (Score < Min,
+        Min = Score, MinRec = HT;
+        Min = OMin, MinRec = OMinRec
+    ).
+
+solve_board(Final, OpenList, ClosedList) :-
+    
+
 atom_to_code_fifteen('@', 16) :- !.
 atom_to_code_fifteen(Atom, Code) :- atom_number(Atom, Code).
 
@@ -111,11 +135,15 @@ final_board_fifteen(InitBoard, FinalBoard) :-
     code_list_to_board(InitCodes, InitBoard),
     (even_permutation(InitCodes), !,
         FinalBoard = board(
-            row(1, 2, 3, 4), row(5, 6, 7, 8),
-            row(9, 10, 11, 12), row(13, 14, 15, 16));
+            row(1, 2, 3, 4),
+            row(5, 6, 7, 8),
+            row(9, 10, 11, 12),
+            row(13, 14, 15, 16));
         FinalBoard = board(
-            row(1, 2, 3, 4), row(5, 6, 7, 8),
-            row(9, 10, 11, 12), row(13, 15, 14, 16))
+            row(1, 2, 3, 4),
+            row(5, 6, 7, 8),
+            row(9, 10, 11, 12),
+            row(13, 15, 14, 16))
     ).
 
 % @TEST, to be removed
@@ -151,8 +179,10 @@ main :-
                 tfout(OB, ORI, OEI),
                 turns_from_test(Board, tfout(OB, ORI, OEI)),
                 Turns),
-            print_tfouts(Turns)
-        ;
+            print_tfouts(Turns),
+
+            diff_board_score(Board, Final, Score),
+            write('Score: '), write(Score), nl;
             
         % @TODO: thirteen
 
@@ -160,6 +190,4 @@ main :-
         write('and [0-13], 00 and @ for "thirteen"\n')
     ),
 
-
     halt.
-
