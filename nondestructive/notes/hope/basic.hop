@@ -1,0 +1,202 @@
+! #!/usr/local/bin/hopeless -f
+! not using as a script yet to load into the interp
+
+! This shall not be understood yet (cuz laziness)
+write argv;
+
+! A hope program consists of clauses delimited by ;
+! A clause starts with a directive name
+
+! the only separator chars are ,;()[]
+! There are regular identifiers, but they can end in any number of '''
+! There are other 'words', which are made up of all other symbols
+! (like $$$ -=#=- and stuff). Since they don't overlap with id-s,
+! they don't need special sep from them, and operators and stuff are expressed
+! via those
+
+! For example, + - * / mod div = /= < =< > >= are lib func names and
+! not reserved words
+
+! Hope is strogly typed. It has builtin types and ways to derive user types.
+! Builtin types are
+! num : for numbers, represented by double in this interp
+! truval : true or false, a bool basically
+! char : single-byte symbol
+
+! The most basic compound type is a tuple
+! (42, 'a', true) is a tuple of type num#char#truval
+! Each function takes and returns a tuple. It is like a struct
+! without a name
+
+! Like functors in prolog compound terms, there are also 'constructors'
+! (think tags from tagged unions), which can be written applied to a
+! (possibly empty tuple) to form a separate type
+! Point(num#num) -- not the same type as num#num
+! For a constructor with an empty tuple, parens are not req
+!
+! Such constructors can be made into an enum type via ++
+! red ++ green ++ blue
+! 
+! Constructors and ++ can only be at the top level of a type definition
+
+! New types are defined via the directive data followed by a name and a ==
+
+data Rainbow == red ++ orange ++ yellow ++ green ++ blue ++ indigo ++ violet;
+data PlainPoint == Point(num # num);
+
+! We can do an optional num type
+data MaybeNum == Ok(num) ++ Fail;
+
+! And here is how we may use it (peering forward to functions)
+dec SafeDiv : num # num -> MaybeNum;
+--- SafeDiv(_, 0) <= Fail;
+--- SafeDiv(x, y) <= Ok(x / y);
+
+! Constructor names can be used with diff tuples
+! (like diff-arity functors in prolog)
+! @TODO: buuuuut this seems to not work. Fix the interp?)
+! It should work if arity is different
+! data SpacePoint == Point(num # num # num);
+
+! data is supposed to make types via constructors -- putting # in it
+! will not work as planned. For defining a type which is equal to a tuple,
+! 'type' is used
+
+type Vec3Num == num # num # num;
+
+! data also allows recursively using the defined type name
+! We can define lists this way
+
+data NumList == NumNil ++ NumCons(num # NumList);
+
+! Valid values of NumList now can be
+! NumNil, NumCons(1, NumNil), NumCons(4, NumCons(8, NumCons(1, NumNil))) etc.
+
+! We could write out lists of all types by hand with different constructors
+! Luckily, hope has parametrizable types
+
+data List(any) == Nil ++ Cons(any # List(any));
+
+! now this is like a template. Types would be List(char), List(List(num)), etc
+! And it will know, that List('a', Nil) is a List(char), and
+! List(3, List(2, Nil)) is a List(num)
+! If we just use Nil, it will beleive it to be a List(alpha), about that
+! (and alpha) later
+
+! We can also not put parens when specing one arg
+! data List any == Nil ++ Cons(any # List any);
+! A one-arg tuple is the same as it's elem. This can infer that ,
+! is a contructor for a tuple, and () are needed because of the low prio of ,
+
+! This list stuff is more of and excercise -- hope has builtin lists,
+! the type is 'list', empty is 'nil', and :: is the consing constructor
+! :: is right assoc, i. e. 1 :: 2 :: 3 :: nil == (1 :: (2 :: (3 :: nil)))
+! This can be written differently via [1, 2, 3], like prolog, but
+! here a head-tail form is 1 :: [2, 3]
+! Also unlike prolog a list is not heterogeneous, but is of a given type
+! (just like a constructor also takes a given tuple, and not just a fixed
+! arity of whatever)
+
+! Like prolog (not the new one with string literals, a string is a list of
+! chars (not codes, at least)
+! "Hope" is ['H', 'o', 'p', 'e']
+
+
+! But a program is made of functions, not data.
+! A function is declared and described separately.
+! dec directive followed by a name and a : declares
+! --- directive clauses followed by an id, params and <= describe
+
+! dec basically declares an identifier with a type, and --- provides values
+! It can be used to declare constants
+
+dec TheUltimateAnswer : num;
+--- TheUltimateAnswer <= 42;
+
+dec TheUltimateQuestion : list(char);
+--- TheUltimateQuestion <= 
+    "What do you get when you multiply six by nine?";
+
+! A function is declared the same, but has a in and out tuple type
+
+dec Cube : num -> num;
+--- Cube(x) <= x * x * x;
+dec SumProd : num # num -> num # num;
+--- SumProd(x, y) <= (x + y, x * y);
+
+! There can be multiple descriptions. In this case the interpreter chooses
+! the one via (the coveted) pattern matching, which is somewhat akin to
+! prolog head term unification. Also _ is used for anon var like in prolog
+
+dec DropElems : num # list(num) -> list(num);
+--- DropElems(_, []) <= [];
+--- DropElems(0, ls) <= ls;
+--- DropElems(k, _ :: tail) <= DropElems(k - 1, tail);
+
+! However since it does not backtrack, in the case of a match it won't retry
+! It even doesn't matter in which order desc clauses were provided --
+! hope will try to chose __the most specific__
+! Specificity is graded on the amount of concrete values in the head,
+! For ambigous cases, the choice is made 'in some unspecified deteministic way'
+! (for us, DropElems(0, []) would be ambigous, but it does not matter).
+
+! For in-desc branching and local vars we have 'if' and 'let' expressions
+! if is a ternary operation 'if A then B else C'
+! let is an operation of form 'let V == E in B' where V is an expr with
+! variables, E -- with the assumes values, and B -- the expression, where
+! variables from V will be considered bound to values from E.
+
+! let can be used to calc a func only once, or unpack a returned tuple
+! to separate vars, same with a list, or to split a list into head and tail.
+! (let is, for instance, why hope does not need car and cdr)
+
+! V and E are somewhat constrained. E can't contain vars from V, and vars in
+! V can not repeat. So it's a bit less powerful than term unification from pl.
+
+! Now let's use em
+
+dec SplitStringDo : list(char) -> list(list(char));
+--- SplitStringDo([]) <= [[]];
+--- SplitStringDo(' ' :: Rest) <=
+    let Word :: List == SplitStringDo(Rest) in
+        if Word = []
+            then [] :: List
+            else [] :: Word :: List;
+--- SplitStringDo(c :: Rest) <=
+    let Word :: List == SplitStringDo(Rest) in
+        (c :: Word) :: List;
+
+dec SplitString : list(char) -> list(list(char));
+--- SplitString(str) <=
+    let Word :: Rest == SplitStringDo(str) in
+        if Word = []
+            then Rest
+            else Word :: Rest;
+
+
+! Hope allows for polymorphic functions. For that in the declarations
+! we can use special typevars. Default are 'alpha' (remember?)
+! 'beta' and 'gamma'. More can be introduced with typevar directive.
+! Typevars are required for polymorphic functions and not for parametric
+! types because in data context is clear, and in dec the interp has to
+! discern between vars and typevars.
+
+typevar delta, epsilon, anytype;
+
+! Now we can make Drop polymorphic. alpha can be used in dec, but not in ---
+! However, we don't need this, because types of vars are always deduced
+! automatically (type systems theory mentioned)
+
+dec Drop : num # list(alpha) -> list(alpha);
+--- Drop(_, []) <= [];
+--- Drop(0, ls) <= ls;
+--- Drop(k, _ :: tail) <= Drop(k - 1, tail);
+
+
+! Hope has higher order functions, thus anonymous functions (lambas again)
+! They also exist in the form of closures, capturing the lexical scope.
+! In hope it is simpler than in lisp, cause hope vars can't change value
+! after being created, so it's just that the value is propagated to the
+! closure.
+
+! @TODO continue
