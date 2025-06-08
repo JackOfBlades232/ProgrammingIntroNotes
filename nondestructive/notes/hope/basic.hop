@@ -199,4 +199,49 @@ dec Drop : num # list(alpha) -> list(alpha);
 ! after being created, so it's just that the value is propagated to the
 ! closure.
 
-! @TODO continue
+! Let's implement map. It won't be polymorphic cause hope,
+! but it will be typed. A type of a function is 'in -> out'
+
+dec Map : (alpha -> beta) # list(alpha) -> list(beta);
+--- Map(_, []) <= [];
+--- Map(f, x :: tail) <= f(x) :: Map(f, tail);
+
+! lambdas are declared as 'lambda V => E', or '\ V => E'
+! This is an expression that evaluates to a closure as a data object
+! Thus we can return these from functions
+
+! -> is right-assoc
+dec MakeAdder : num -> num -> num;
+--- MakeAdder(x) <= lambda y => x + y;
+
+! For binary infix operations there is a shorthand to get a one-arg func that
+! applies the op with one operand fixed
+! (2-) === lambda x => 2 - x
+! (::[100]) === lambda x => x :: [100]
+! Actually, (+) is the same as lambda (x, y) => x + y
+
+! lambdas can be multi-clause via |
+! lambda ([] :: T) => T | (H :: T) => H :: T drops head if it's emtpy
+
+! Observation: let V == E in B <=> (lambda V => B) E
+
+! There is an important feature: letrec. Like let, but allows using vars
+! from V in E. This allows, for example, making recursive lambdas locally.
+
+dec DoDropElems : num # list(alpha) -> list(alpha);
+--- DoDropElems(n, l) <=
+    letrec drop_elems ==
+        lambda (_, []) => []
+            | (0, ls) => ls
+            | (k, _ :: tail) => drop_elems(k - 1, tail)
+    in drop_elems(n, l);
+
+! With lazy evaluation we can do even better
+dec FirstN : num # list(alpha) -> list(alpha);
+--- FirstN(_, []) <= [];
+--- FirstN(0, _) <= [];
+--- FirstN(n, h :: t) <= h :: FirstN(n - 1, t);
+
+! And now with
+! letrec lst == 1 :: 2 :: lst in FirstN(8, lst);
+! we can get [1, 2, 1, 2, 1, 2, 1, 2]
