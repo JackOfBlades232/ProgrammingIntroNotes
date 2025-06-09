@@ -1,0 +1,56 @@
+#!/usr/local/bin/hopeless -f
+
+! In hope io is underdeveloped, and is special due to lazy evaluation.
+! For input the function read(_fname_) is used, where read("") means stdin
+! This function returns a lazy list(char), for which the evaluation of
+! elements actually fetches them. Writing can only be done via the write
+! directive, so no logic in writes.
+
+! let's make the pascal tri calculator into a program
+! If it gets 2 cmdline args, it'll print Cnk
+! If it gets 1 cmdline arg, it'll print nth line of the tri
+! If none, it will print lines of the tri one by one on user pressing enter
+
+dec NextLineRest : list(num) -> list(num);
+--- NextLineRest([k]) <= [k];
+--- NextLineRest(a :: b :: ls) <= (a + b) :: NextLineRest(b :: ls);
+
+dec NextLine : list(num) -> list(num);
+--- NextLine(ls) <= 1 :: NextLineRest(ls);
+
+dec PascalTriBuild : list(num) -> list(list(num));
+--- PascalTriBuild(ls) <= ls :: PascalTriBuild(NextLine(ls));
+
+dec PascalTri : list(list(num));
+--- PascalTri <= PascalTriBuild([1]);
+
+dec Nth : list(alpha) # num -> alpha;
+--- Nth(x :: ls, n) <= if n = 0 then x else Nth(ls, n - 1);
+
+dec Cnk : num # num -> num;
+--- Cnk(n, k) <= Nth(Nth(PascalTri, n), k);
+
+! Now, the io part. For this we'll use lib funcs num2str and str2num.
+! And <> which concatenates lists
+
+dec NumList2Str : list(num) -> list(char);
+--- NumList2Str([]) <= [];
+--- NumList2Str(n :: rest) <= num2str(n) <> " " <> NumList2Str(rest);
+
+! For the interactive mode, we will include calculation of read("") elements
+! as stops for the interactivity
+
+dec LineByLine : list(char) # list(list(num)) -> list(char);
+--- LineByLine([], _) <= [];
+--- LineByLine('\n' :: inp, h :: t) <= NumList2Str(h) <> LineByLine(inp, t);
+
+! @NOTE: this should have validation
+dec Main : list(list(char)) # list(char) -> list(char);
+--- Main([], inp) <= LineByLine("\n" <> inp, PascalTri);
+--- Main(n :: [], inp) <= NumList2Str(Nth(PascalTri, str2num(n)));
+--- Main(n :: k :: [], inp) <= num2str(Cnk(str2num(n), str2num(k)));
+
+! Now we can use this main which 'just transforms the input list into the
+! output list' to splat the output in one go (write will eagerly print each
+! calculated elem). input inside of write context is the same as read("")
+write Main(argv, input) <> "\n";
