@@ -1,0 +1,73 @@
+! First, let's do list reductions
+! Note, that while in lisp left reduction was preferable due to tail call
+! optimization, with lazy evaluation it does not matter, so we'll do right
+! this time
+
+dec Reduce : (alpha # beta -> beta) # list(alpha) # beta -> beta;
+--- Reduce(_, [], init) <= init;
+--- Reduce(f, h :: t, init) <= f(h, Reduce(f, t, init));
+
+! Now let's use Reduce to make a function that checks if an elem is in a list
+dec Member : alpha # list(alpha) -> truval;
+--- Member(e, l) <= Reduce(\ (el, ok) => if e = el then true else ok, l, false);
+
+! Here if we did it differently -- had the if be
+! if ok then true else x = el
+! Then we would always require ok for the evaluation -- that means that
+! the whole computation would have to run through the whole list
+
+! However here, if we find 'e' early, we just stop the computation --
+! cause it's lazy-evald (and thus no side effects), once we get
+! x = el we just short circuit.
+
+! Now let's do some infinite data structures
+
+! :: is a _nonstrict_ constructor -- that is, it does not compute it's
+! args until they are required. This allows for lazy lists.
+
+! Let's make the list of natural numbers
+
+dec From : num -> list(num);
+--- From(x) <= x :: From(x + 1);
+
+! Now From(1) === {N}, and we can do stuff that does not require complete
+! calculation with it.
+
+! Let's now do some stuff that actually always works
+
+dec Nth : list(alpha) # num -> alpha;
+--- Nth(x :: ls, n) <= if n = 1 then x else Nth(ls, n - 1);
+
+dec FirstN : list(alpha) # num -> list(alpha);
+--- FirstN(x :: ls, n) <= if n = 0 then nil else x :: FirstN(ls, n - 1);
+
+! This will work with infinite lists just as well!
+
+! Now the same for primes
+
+dec Filter : num # list(num) -> list(num);
+--- Filter(n, m :: ls) <=
+    if (m mod n) = 0 then Filter(n, ls) else m :: Filter(n, ls);
+dec Sieve : list(num) -> list(num);
+--- Sieve(n :: ls) <= n :: Sieve(Filter(n, ls));
+
+! now FirstN(Sieve(From(2)), 1000) gives the first 1000 primes
+
+! Finally, let's compute C_n^k via an infinite pascal triangle,
+! building it recursively one line to the next
+
+dec NextLineRest : list(num) -> list(num);
+--- NextLineRest([k]) <= [k];
+--- NextLineRest(a :: b :: ls) <= (a + b) :: NextLineRest(b :: ls);
+
+dec NextLine : list(num) -> list(num);
+--- NextLine(ls) <= 1 :: NextLineRest(ls);
+
+dec PascalTriBuild : list(num) -> list(list(num));
+--- PascalTriBuild(ls) <= ls :: PascalTriBuild(NextLine(ls));
+
+dec PascalTri : list(list(num));
+--- PascalTri <= PascalTriBuild([1]);
+
+dec Cnk : num # num -> num;
+--- Cnk(n, k) <= Nth(Nth(PascalTri, (n + 1)), (k + 1));
