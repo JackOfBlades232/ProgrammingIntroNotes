@@ -1,0 +1,108 @@
+! Now for some other stuff
+
+! Proposition:
+! Curried function is not a function with one arg fixed --
+! it is a function f'(c) : c -> f_c(x), where f_c(x) === f(x, c)
+! so Curry(f) = f'. Meaning, that Curry is a generic operation.
+
+dec Curry : (alpha # beta -> gamma) -> (alpha -> (beta -> gamma));
+--- Curry(f) <= (lambda x => (lambda y => f(x, y)));
+
+! Now with this func we can
+dec Func : num # num -> num;
+--- Func(x, y) <= 10 * x + y;
+
+! Curry Func
+! >> lambda x => lambda y => Func (x, y) : num -> num -> num
+! Curry Func 2
+! >> lambda y => Func (2, y) : num -> num
+! Curry Func 2 3
+! >> 23 : num
+
+! We can write funcs in a Curried syntax straight away
+dec Func2 : num -> num -> num;
+--- Func2 x y <= 10 * x + y;
+
+! Here the pattern matcher will know that we invoke Func2 and then invoke
+! it's result straight away. However, it can't be called as Func2(x, y),
+! cause the notation, instead the curried call notation Func2 x y; 
+! There can be more args
+
+dec Func3 : num -> num -> num -> num;
+--- Func3 x y z <= 100 * x + 10 * y + z;
+
+! Here Func3 x y z creates 2 closures and then applies last to z to get the res
+
+! Now let's implement the stable point combiner, i e F : f -> x | x = f(x)
+! F can be described via F(f) = f(F(f)), and let's define it that way.
+
+dec Fix : (alpha -> alpha) -> alpha;
+--- Fix f <= f(Fix f);
+
+! Now let's use it to implement the sum of a list of numbers
+dec SumListViaFix : list(num) -> num;
+--- SumListViaFix ls <= Fix(lambda f => lambda [] => 0 | a :: d => a + f d) ls;
+
+! Why does it work the same as?
+dec SumList : list(num) -> num;
+--- SumList [] <= 0;
+--- SumList (x :: r) <= x + SumList r;
+
+! let p be the outer lambda , and q be the inner lambda, and let ls = [1, 2, 3]
+! Since p is not strict, after one application of p(Fix p) we get
+! q_Fix(p) ls -- where Fix(p) is the uncalculated fn that is put in the 
+! returned q closure.
+! now q_Fix(p) ls is 1 + ((Fix p) [2, 3])
+! Now + is strict, so ((Fix p) [2, 3]) has to be calculated first
+! ((Fix p) [2, 3]) <=> (p(Fix p) [2, 3]) by def of Fix, so we do the same
+! and get 2 + ((Fix p) [3]), or 1 + 2 + ((Fix p) [3]) in total
+! Finally we do it one lst time, obtaining
+! 1 + 2 + 3 + q_Fix(p) [], and now the q lambda takes the other branch, and
+! recursion is terminated, getting us 1 + 2 + 3 + 0 = 6
+
+! The point here is that Fix f is an infinite sequence of applications
+! of f to Fix f (and result of other computations).
+! In this way it resembles the proof of the stable point theorem.
+! This construction is self referential and infinite, so if f is strict
+! or depends on it's arg (making it strict, since it can't just stay an
+! uncalculated expression, discarding the uncalculatable computation path),
+! Fix f will always give infinite recursion. In the above example, there
+! is a condition when f(...) discards the input and just gives a constant,
+! making the argument not have to be calculated.
+
+! So via fix we just set up infinite recursion which is stored as a finite
+! expression, and if we need to go deeper, we calculate deeper, and then stop.
+
+! And all the recursion happens inside Fix.
+
+! The reason it is called 'stable point combiner' (it's a translation from
+! russian, may be incorrect), is that mathematically with infinite resources
+! It can get the stable point of a function.
+! In the real world, you can expect that only from constants.
+
+! Another observation -- SumList is the stable point of
+! lambda f => lambda [] => 0 | a :: d => a + f d
+! Indeed, p SumList === lambda [] => 0 | a :: d => a + SumList d,
+! which is exactly the recursive definition of SumList.
+
+! Another observation
+! letrec V == E in B <=> (lambda V => B)(Fix (lambda V => E))
+! indeed, a stable point of lambda V => E is V such that V == E,
+! (in the mathematical sense, as V == E is also self referential),
+! and applying lambda V => B to it is exactly that (and will recurse via Fix)
+
+dec DropElems : num # list(alpha) -> list(alpha);
+--- DropElems(n, l) <=
+    (lambda drop_elems => drop_elems(n, l))
+        (Fix (lambda drop_elems =>
+            lambda (_, []) => []
+                | (0, ls) => ls
+                | (k, _ :: tail) => drop_elems(k - 1, tail)));
+
+! And it works!
+! Cause of the same thing -- it just stops when calculating f is not needed,
+! and the regular recursive DropElems is the stable point of the lambda.
+
+! So basically the lambda maps the function to the next recursive step of
+! the same function, and only the function with this exact recursive structure
+! is the stable point of said lambda.
