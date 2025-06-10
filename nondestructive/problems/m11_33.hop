@@ -1,0 +1,32 @@
+! 11_33
+
+dec From : num -> list(num);
+--- From(x) <= x :: From(x + 1);
+
+dec Nth : list(alpha) -> num -> alpha;
+--- Nth (x :: ls) n <= if n = 1 then x else Nth ls (n - 1);
+
+dec FirstN : list(alpha) -> num -> list(alpha);
+--- FirstN (x :: ls) n <= if n = 0 then nil else x :: FirstN ls (n - 1);
+
+dec Filter : num -> list(num) -> list(num);
+--- Filter n (m :: ls) <=
+    if (m mod n) = 0 then Filter n ls else m :: Filter n ls;
+dec Sieve : list(num) -> list(num);
+--- Sieve(n :: ls) <= n :: Sieve(Filter n ls);
+
+dec NextLineRest : list(num) -> list(num);
+--- NextLineRest([k]) <= [k];
+--- NextLineRest(a :: b :: ls) <= (a + b) :: NextLineRest(b :: ls);
+
+dec NextLine : list(num) -> list(num);
+--- NextLine(ls) <= 1 :: NextLineRest(ls);
+
+dec PascalTriBuild : list(num) -> list(list(num));
+--- PascalTriBuild(ls) <= ls :: PascalTriBuild(NextLine(ls));
+
+dec PascalTri : list(list(num));
+--- PascalTri <= PascalTriBuild([1]);
+
+dec Cnk : num -> num -> num;
+--- Cnk n k <= Nth (Nth PascalTri (n + 1)) (k + 1);

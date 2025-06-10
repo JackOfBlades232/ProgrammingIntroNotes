@@ -1,0 +1,3 @@
+! 11_29
+dec MakeSeq : num # num # num -> list(num);
+--- MakeSeq(x, y, d) <= if x =< y then x :: MakeSeq(x + d, y, d) else [];

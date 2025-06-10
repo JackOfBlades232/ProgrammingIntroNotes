@@ -1,0 +1,5 @@
+! 11_30
+dec Twist : list(alpha) # list(alpha) -> list(alpha);
+--- Twist([], _) <= [];
+--- Twist(_, []) <= [];
+--- Twist(hl :: tl, hr :: tr) <= hl :: hr :: Twist(tl, tr);

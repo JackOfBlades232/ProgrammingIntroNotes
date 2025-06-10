@@ -1,0 +1,5 @@
+! 11_32
+dec DropElems : num -> list(alpha) -> list(alpha);
+--- DropElems n []  <= [];
+--- DropElems 0 ls  <= ls;
+--- DropElems k (_ :: tail) <= DropElems (k - 1) tail;
