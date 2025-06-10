@@ -1,3 +1,66 @@
 #!/usr/local/bin/hopeless -f
 
-! @TODO
+dec Filter : list(alpha) # (alpha -> truval) -> list(alpha);
+--- Filter([], _) <= [];
+--- Filter(h :: t, pred) <=
+    if pred(h) then h :: Filter(t, pred) else Filter(t, pred);
+
+dec Count : list(alpha) -> num;
+--- Count([]) <= 0;
+--- Count(_ :: t) <= 1 + Count(t);
+
+dec SplitStringDo : list(char) -> list(list(char));
+--- SplitStringDo([]) <= [[]];
+--- SplitStringDo(' ' :: Rest) <=
+    let Word :: List == SplitStringDo(Rest) in
+        if Word = []
+            then [] :: List
+            else [] :: Word :: List;
+--- SplitStringDo(c :: Rest) <=
+    let Word :: List == SplitStringDo(Rest) in
+        (c :: Word) :: List;
+
+dec SplitString : list(char) -> list(list(char));
+--- SplitString(str) <=
+    let Word :: Rest == SplitStringDo(str) in
+        if Word = []
+            then Rest
+            else Word :: Rest;
+
+dec StartsWithA : list(char) -> truval;
+--- StartsWithA('A' :: _) <= true;
+--- StartsWithA(_) <= false;
+dec EndsWithZ : list(char) -> truval;
+--- EndsWithZ("z") <= true;
+--- EndsWithZ(_ :: b :: t) <= EndsWithZ(b :: t);
+--- EndsWithZ(_) <= false;
+
+dec IsAz : list(char) -> truval;
+--- IsAz <= lambda s => StartsWithA(s) and EndsWithZ(s);
+
+dec CountDoubleParens : list(char) -> num;
+--- CountDoubleParens([]) <= 0;
+--- CountDoubleParens('(' :: ')' :: t) <= 1 + CountDoubleParens(t);
+--- CountDoubleParens(_ :: t) <= CountDoubleParens(t);
+
+dec LineByLine :
+    list(char) # list(char) # (list(char) -> list(char)) -> list(char);
+--- LineByLine([], [], _) <= [];
+--- LineByLine([], line, pr) <= pr(line);
+--- LineByLine('\n' :: inp, line, pr) <=
+    pr(line) <> "\n" <> LineByLine(inp, "", pr);
+--- LineByLine(c :: inp, line, pr) <=
+    LineByLine(inp, line <> [c], pr);
+
+dec Main : list(list(char)) # list(char) -> list(char);
+--- Main(["d"], inp) <=
+    LineByLine(
+        inp, "",
+        lambda line => num2str(Count(Filter(SplitString(line), IsAz))));
+--- Main(["h"], inp) <=
+    LineByLine(
+        inp, "",
+        lambda line => num2str(CountDoubleParens(line)));
+--- Main(_, _) <= "Invalid args, correct usage: prog [d|h]\n";
+    
+write Main(argv, input);
