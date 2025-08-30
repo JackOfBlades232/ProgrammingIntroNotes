@@ -2,6 +2,7 @@
 # basics.tcl \
 exec tclsh "$0" "$@"
 
+# In tcl all data is a string!
 # In tcl almost any string works as an identifier, which can id vars & funcs
 
 # set commands sets a value to a var

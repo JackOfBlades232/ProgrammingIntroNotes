@@ -98,7 +98,9 @@ foreach a $argv b { 1 2 3 4 } {
 # there is also switch, not gonna describe here
 
 # break and continue commands break out/skip iter of the cycle
-# @TODO: i don't quite get how they work
+# They work by returning a special code from the interpretation of the block.
+# Actually every command has both a result and a completion code, that
+# is what catch gets (see calc)
 
 foreach a $argv b { 1 2 3 4 } {
     if { $b == 2 } { continue }
