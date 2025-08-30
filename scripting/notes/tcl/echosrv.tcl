@@ -1,5 +1,5 @@
 #!/bin/sh
-# basics.tcl \
+# echosrv.tcl \
 exec tclsh "$0" "$@"
 
 # let's make an echoserver
